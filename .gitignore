@@ -1,0 +1,12 @@
+# build output (./build.sh)
+build/
+
+# signing keys never go in the repo
+*.keystore
+*.jks
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

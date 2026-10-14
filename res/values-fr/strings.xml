@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="row_favorites">Favoris</string>
+    <string name="row_projector">Projecteur</string>
+    <string name="row_apps">Toutes les applis</string>
+
+    <string name="kicker_favorite">Favori</string>
+    <string name="kicker_app">Appli</string>
+    <string name="kicker_system">Système</string>
+    <string name="kicker_customize">Personnaliser</string>
+
+    <string name="add_favorite">Ajouter un favori</string>
+    <string name="add_favorite_sub">Maintiens OK sur une appli pour l\'ajouter ici ou la retirer</string>
+    <string name="fav_added">%1$s ajoutée aux favoris</string>
+    <string name="fav_removed">%1$s retirée des favoris</string>
+    <string name="hold_to_favorite">Maintiens OK sur une appli pour l\'épingler</string>
+
+    <string name="projection">Projection</string>
+    <string name="projection_sub">Trapèze, zoom et mode de projection</string>
+    <string name="wifi">Wi-Fi</string>
+    <string name="wifi_sub">Réseau et internet</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="bluetooth_sub">Enceintes, manettes, claviers</string>
+    <string name="settings">Réglages</string>
+    <string name="settings_sub">Réglages Android</string>
+
+    <string name="remote">Télécommande</string>
+    <string name="remote_on_sub">Ouvre cette adresse sur ton téléphone pour piloter le projecteur</string>
+    <string name="remote_off">Non installée</string>
+    <string name="remote_off_sub">Installe UniDroid Remote pour piloter le projecteur depuis ton téléphone</string>
+
+    <string name="launch_failed">Impossible d\'ouvrir %1$s</string>
+</resources>
