@@ -8,6 +8,17 @@
     <!-- Talks to the UniDroid Remote server on 127.0.0.1 -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Wi-Fi and Bluetooth panels (nearby networks and devices need location on Android 8.1+) -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <!-- App menu: Uninstall -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
     <!-- Android 11+: declare which apps the launcher lists -->
     <queries>
         <intent>

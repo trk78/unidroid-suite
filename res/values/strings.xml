@@ -12,19 +12,21 @@
     <string name="kicker_customize">Customize</string>
 
     <string name="add_favorite">Add a favorite</string>
-    <string name="add_favorite_sub">Hold OK on any app to add it here or remove it</string>
+    <string name="add_favorite_sub">Hold OK on any app for its menu: pin, move, hide, uninstall</string>
     <string name="fav_added">%1$s added to favorites</string>
     <string name="fav_removed">%1$s removed from favorites</string>
     <string name="hold_to_favorite">Hold OK on an app to pin it</string>
 
     <string name="projection">Projection</string>
-    <string name="projection_sub">Keystone, zoom and projection mode</string>
+    <string name="projection_sub">Keystone, input and projector settings</string>
     <string name="wifi">Wi-Fi</string>
     <string name="wifi_sub">Network and internet</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bluetooth_sub">Speakers, controllers, keyboards</string>
-    <string name="settings">Settings</string>
-    <string name="settings_sub">Android settings</string>
+    <string name="settings">Android settings</string>
+    <string name="settings_sub">All system settings</string>
+    <string name="hdmi">HDMI</string>
+    <string name="hdmi_sub">Show the device plugged into HDMI</string>
 
     <string name="remote">Remote</string>
     <string name="remote_on_sub">Open this address on your phone to control the projector</string>
@@ -32,4 +34,116 @@
     <string name="remote_off_sub">Install UniDroid Remote to control the projector from your phone</string>
 
     <string name="launch_failed">Could not open %1$s</string>
+
+    <!-- Common -->
+    <string name="on">On</string>
+    <string name="off">Off</string>
+    <string name="cancel">Cancel</string>
+    <string name="back">Back</string>
+    <string name="loading">Loading…</string>
+    <string name="action_failed">That did not work</string>
+    <string name="root_needed">Needs root access</string>
+
+    <!-- Wi-Fi panel -->
+    <string name="wifi_on_sub">Connected networks and networks around you</string>
+    <string name="wifi_off_sub">Wi-Fi is off</string>
+    <string name="wifi_connected">Connected</string>
+    <string name="wifi_hidden_name">Current network</string>
+    <string name="wifi_available">Available networks</string>
+    <string name="wifi_need_location">Android asks for the location permission to list nearby networks. Allow it to see them here.</string>
+    <string name="wifi_saved">Saved</string>
+    <string name="wifi_open">Open</string>
+    <string name="wifi_secured">Secured</string>
+    <string name="wifi_scanning">Looking for networks…</string>
+    <string name="wifi_rescan">Search again</string>
+    <string name="wifi_enterprise">Enterprise networks are set up in Android settings</string>
+    <string name="wifi_password">Password</string>
+    <string name="wifi_password_short">The password needs at least 8 characters</string>
+    <string name="wifi_show_password">Show password</string>
+    <string name="wifi_connect">Connect</string>
+    <string name="wifi_connecting">Connecting to %1$s…</string>
+    <string name="wifi_connect_failed">Could not connect to %1$s</string>
+    <string name="wifi_forget">Forget this network</string>
+    <string name="wifi_forget_sub">The password will be asked again next time</string>
+
+    <!-- Bluetooth panel -->
+    <string name="bt_missing">This device has no Bluetooth</string>
+    <string name="bt_on_sub">Paired devices and devices around you</string>
+    <string name="bt_off_sub">Bluetooth is off</string>
+    <string name="bt_paired">Paired devices</string>
+    <string name="bt_none_paired">No paired device yet</string>
+    <string name="bt_connected">Connected</string>
+    <string name="bt_nearby">Nearby devices</string>
+    <string name="bt_pairing">Pairing…</string>
+    <string name="bt_searching">Searching…</string>
+    <string name="bt_search_hint">Put your device in pairing mode, then search</string>
+    <string name="bt_search">Search for devices</string>
+    <string name="bt_connect">Connect</string>
+    <string name="bt_disconnect">Disconnect</string>
+    <string name="bt_forget">Forget this device</string>
+    <string name="bt_forget_sub">You will need to pair it again</string>
+    <string name="bt_connecting">Connecting %1$s…</string>
+    <string name="bt_disconnecting">Disconnecting %1$s…</string>
+    <string name="bt_kind_audio">Audio</string>
+    <string name="bt_kind_input">Keyboard, mouse or controller</string>
+    <string name="bt_kind_phone">Phone</string>
+    <string name="bt_kind_computer">Computer</string>
+
+    <!-- Projection panel -->
+    <string name="keystone">Keystone</string>
+    <string name="corner_tl">Top left corner</string>
+    <string name="corner_tr">Top right corner</string>
+    <string name="corner_bl">Bottom left corner</string>
+    <string name="corner_br">Bottom right corner</string>
+    <string name="keystone_editing">Arrows move the corner · OK keeps it · Back cancels</string>
+    <string name="keystone_undo">Undo changes</string>
+    <string name="keystone_undo_sub">Back to the corners as they were when this panel opened</string>
+    <string name="source">Input</string>
+    <string name="vendor_section">Manufacturer</string>
+    <string name="vendor_projection">Projection mode and zoom</string>
+    <string name="vendor_projection_sub">Opens the manufacturer\'s screen</string>
+    <string name="projection_no_root">Keystone control needs root access (Magisk). The manufacturer\'s screen still works.</string>
+
+    <!-- Launcher settings -->
+    <string name="settings_launcher">Settings</string>
+    <string name="settings_launcher_sub">Look of the home screen and Android settings</string>
+    <string name="look">Look</string>
+    <string name="wallpaper">Background</string>
+    <string name="wallpaper_dynamic">App colour</string>
+    <string name="wallpaper_accent">Accent colour</string>
+    <string name="wallpaper_plain">Plain black</string>
+    <string name="accent">Accent colour</string>
+    <string name="accent_blue">Blue</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_pink">Pink</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_green">Green</string>
+    <string name="accent_teal">Teal</string>
+    <string name="card_size">Favorite size</string>
+    <string name="size_compact">Compact</string>
+    <string name="size_normal">Normal</string>
+    <string name="size_large">Large</string>
+    <string name="show_clock">Clock and date</string>
+    <string name="home_rows">Home screen rows</string>
+    <string name="hidden_apps">Hidden apps</string>
+    <plurals name="hidden_count">
+        <item quantity="one">%d app hidden from All apps</item>
+        <item quantity="other">%d apps hidden from All apps</item>
+    </plurals>
+    <string name="hidden_none">No hidden app</string>
+    <string name="unhide">Show again</string>
+    <string name="system">System</string>
+    <string name="about">About</string>
+    <string name="about_sub">UniDroid Launcher %1$s · free and open source (MIT)</string>
+
+    <!-- App menu -->
+    <string name="menu_open">Open</string>
+    <string name="menu_favorite">Add to favorites</string>
+    <string name="menu_unfavorite">Remove from favorites</string>
+    <string name="menu_move_left">Move left</string>
+    <string name="menu_move_right">Move right</string>
+    <string name="menu_hide">Hide</string>
+    <string name="menu_hide_sub">Removes it from All apps (Settings › Hidden apps to bring it back)</string>
+    <string name="menu_info">App info</string>
+    <string name="menu_uninstall">Uninstall</string>
 </resources>

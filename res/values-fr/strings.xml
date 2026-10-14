@@ -10,19 +10,21 @@
     <string name="kicker_customize">Personnaliser</string>
 
     <string name="add_favorite">Ajouter un favori</string>
-    <string name="add_favorite_sub">Maintiens OK sur une appli pour l\'ajouter ici ou la retirer</string>
+    <string name="add_favorite_sub">Maintiens OK sur une appli pour son menu : épingler, déplacer, masquer, désinstaller</string>
     <string name="fav_added">%1$s ajoutée aux favoris</string>
     <string name="fav_removed">%1$s retirée des favoris</string>
     <string name="hold_to_favorite">Maintiens OK sur une appli pour l\'épingler</string>
 
     <string name="projection">Projection</string>
-    <string name="projection_sub">Trapèze, zoom et mode de projection</string>
+    <string name="projection_sub">Trapèze, entrée et réglages du projecteur</string>
     <string name="wifi">Wi-Fi</string>
     <string name="wifi_sub">Réseau et internet</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="bluetooth_sub">Enceintes, manettes, claviers</string>
-    <string name="settings">Réglages</string>
-    <string name="settings_sub">Réglages Android</string>
+    <string name="settings">Réglages Android</string>
+    <string name="settings_sub">Tous les réglages du système</string>
+    <string name="hdmi">HDMI</string>
+    <string name="hdmi_sub">Affiche l\'appareil branché en HDMI</string>
 
     <string name="remote">Télécommande</string>
     <string name="remote_on_sub">Ouvre cette adresse sur ton téléphone pour piloter le projecteur</string>
@@ -30,4 +32,116 @@
     <string name="remote_off_sub">Installe UniDroid Remote pour piloter le projecteur depuis ton téléphone</string>
 
     <string name="launch_failed">Impossible d\'ouvrir %1$s</string>
+
+    <!-- Commun -->
+    <string name="on">Activé</string>
+    <string name="off">Désactivé</string>
+    <string name="cancel">Annuler</string>
+    <string name="back">Retour</string>
+    <string name="loading">Chargement…</string>
+    <string name="action_failed">Ça n\'a pas marché</string>
+    <string name="root_needed">Nécessite l\'accès root</string>
+
+    <!-- Wi-Fi -->
+    <string name="wifi_on_sub">Réseau connecté et réseaux autour de toi</string>
+    <string name="wifi_off_sub">Le Wi-Fi est coupé</string>
+    <string name="wifi_connected">Connecté</string>
+    <string name="wifi_hidden_name">Réseau actuel</string>
+    <string name="wifi_available">Réseaux disponibles</string>
+    <string name="wifi_need_location">Android demande l\'autorisation de localisation pour lister les réseaux proches. Accepte-la pour les voir ici.</string>
+    <string name="wifi_saved">Enregistré</string>
+    <string name="wifi_open">Ouvert</string>
+    <string name="wifi_secured">Sécurisé</string>
+    <string name="wifi_scanning">Recherche des réseaux…</string>
+    <string name="wifi_rescan">Rechercher à nouveau</string>
+    <string name="wifi_enterprise">Les réseaux d\'entreprise se configurent dans les réglages Android</string>
+    <string name="wifi_password">Mot de passe</string>
+    <string name="wifi_password_short">Le mot de passe fait au moins 8 caractères</string>
+    <string name="wifi_show_password">Afficher le mot de passe</string>
+    <string name="wifi_connect">Se connecter</string>
+    <string name="wifi_connecting">Connexion à %1$s…</string>
+    <string name="wifi_connect_failed">Impossible de se connecter à %1$s</string>
+    <string name="wifi_forget">Oublier ce réseau</string>
+    <string name="wifi_forget_sub">Le mot de passe sera redemandé la prochaine fois</string>
+
+    <!-- Bluetooth -->
+    <string name="bt_missing">Cet appareil n\'a pas de Bluetooth</string>
+    <string name="bt_on_sub">Appareils associés et appareils autour de toi</string>
+    <string name="bt_off_sub">Le Bluetooth est coupé</string>
+    <string name="bt_paired">Appareils associés</string>
+    <string name="bt_none_paired">Aucun appareil associé</string>
+    <string name="bt_connected">Connecté</string>
+    <string name="bt_nearby">Appareils à proximité</string>
+    <string name="bt_pairing">Association…</string>
+    <string name="bt_searching">Recherche…</string>
+    <string name="bt_search_hint">Mets ton appareil en mode association, puis lance la recherche</string>
+    <string name="bt_search">Rechercher des appareils</string>
+    <string name="bt_connect">Connecter</string>
+    <string name="bt_disconnect">Déconnecter</string>
+    <string name="bt_forget">Oublier cet appareil</string>
+    <string name="bt_forget_sub">Il faudra l\'associer à nouveau</string>
+    <string name="bt_connecting">Connexion de %1$s…</string>
+    <string name="bt_disconnecting">Déconnexion de %1$s…</string>
+    <string name="bt_kind_audio">Audio</string>
+    <string name="bt_kind_input">Clavier, souris ou manette</string>
+    <string name="bt_kind_phone">Téléphone</string>
+    <string name="bt_kind_computer">Ordinateur</string>
+
+    <!-- Projection -->
+    <string name="keystone">Trapèze</string>
+    <string name="corner_tl">Coin haut gauche</string>
+    <string name="corner_tr">Coin haut droit</string>
+    <string name="corner_bl">Coin bas gauche</string>
+    <string name="corner_br">Coin bas droit</string>
+    <string name="keystone_editing">Flèches : déplacer le coin · OK : garder · Retour : annuler</string>
+    <string name="keystone_undo">Annuler les modifications</string>
+    <string name="keystone_undo_sub">Remet les coins comme à l\'ouverture de ce panneau</string>
+    <string name="source">Entrée</string>
+    <string name="vendor_section">Constructeur</string>
+    <string name="vendor_projection">Mode de projection et zoom</string>
+    <string name="vendor_projection_sub">Ouvre l\'écran du constructeur</string>
+    <string name="projection_no_root">Le trapèze nécessite l\'accès root (Magisk). L\'écran du constructeur reste disponible.</string>
+
+    <!-- Réglages du launcher -->
+    <string name="settings_launcher">Réglages</string>
+    <string name="settings_launcher_sub">Apparence de l\'accueil et réglages Android</string>
+    <string name="look">Apparence</string>
+    <string name="wallpaper">Fond</string>
+    <string name="wallpaper_dynamic">Couleur de l\'appli</string>
+    <string name="wallpaper_accent">Couleur d\'accent</string>
+    <string name="wallpaper_plain">Noir uni</string>
+    <string name="accent">Couleur d\'accent</string>
+    <string name="accent_blue">Bleu</string>
+    <string name="accent_violet">Violet</string>
+    <string name="accent_pink">Rose</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_green">Vert</string>
+    <string name="accent_teal">Turquoise</string>
+    <string name="card_size">Taille des favoris</string>
+    <string name="size_compact">Compacte</string>
+    <string name="size_normal">Normale</string>
+    <string name="size_large">Grande</string>
+    <string name="show_clock">Heure et date</string>
+    <string name="home_rows">Rangées de l\'accueil</string>
+    <string name="hidden_apps">Applis masquées</string>
+    <plurals name="hidden_count">
+        <item quantity="one">%d appli masquée de Toutes les applis</item>
+        <item quantity="other">%d applis masquées de Toutes les applis</item>
+    </plurals>
+    <string name="hidden_none">Aucune appli masquée</string>
+    <string name="unhide">Réafficher</string>
+    <string name="system">Système</string>
+    <string name="about">À propos</string>
+    <string name="about_sub">UniDroid Launcher %1$s · libre et open source (MIT)</string>
+
+    <!-- Menu appli -->
+    <string name="menu_open">Ouvrir</string>
+    <string name="menu_favorite">Ajouter aux favoris</string>
+    <string name="menu_unfavorite">Retirer des favoris</string>
+    <string name="menu_move_left">Déplacer à gauche</string>
+    <string name="menu_move_right">Déplacer à droite</string>
+    <string name="menu_hide">Masquer</string>
+    <string name="menu_hide_sub">La retire de Toutes les applis (Réglages › Applis masquées pour la remettre)</string>
+    <string name="menu_info">Infos sur l\'appli</string>
+    <string name="menu_uninstall">Désinstaller</string>
 </resources>

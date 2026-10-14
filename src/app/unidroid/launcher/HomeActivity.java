@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -15,10 +14,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.Settings;
 import android.text.TextUtils;
-import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.OvershootInterpolator;
@@ -41,34 +39,39 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * The home screen: clock, a hero line describing the focused item, then rows of
  * favorites, projector shortcuts and all apps. Everything is laid out on a
- * 1920-unit grid so it looks the same on 720p and 1080p screens.
+ * 1920-unit grid so it looks the same on 720p and 1080p screens. Wi-Fi, Bluetooth,
+ * projection and settings open as side panels ({@link Sheet}) over this screen.
  */
-public final class HomeActivity extends Activity {
-    private static final int INK = 0xFF05070C;
-    private static final int FG = 0xFFF4F6FB;
-    private static final int DIM = 0x9EDEE4F0;
-    private static final int GLASS = 0x14FFFFFF;
-    private static final int EDGE = 0x24FFFFFF;
-    private static final int ACCENT = 0xFF6AA8FF;
+public final class HomeActivity extends Activity implements SettingsPanel.Host {
     private static final int REMOTE_PORT = 8080;
 
-    private float unit;
-    private SharedPreferences prefs;
+    private Ui ui;
+    private Prefs prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
     private List<AppRepo.App> apps = new ArrayList<>();
 
+    private View glow;
     private GradientDrawable aurora;
     private int tint = 0xFF3D6FFF;
     private ValueAnimator tintAnimator;
+    private View timeBlock;
     private TextView clock, date, kicker, title, subtitle;
     private ScrollView scroll;
     private LinearLayout favoritesRow, projectorRow, appsRow;
+    private View projectorSection, appsSection;
     private TextView remoteValue;
     private String remoteUrl;
+
+    private Sheet sheet;
+    private WifiPanel wifiPanel;
+    private BluetoothPanel bluetoothPanel;
+    private ProjectionPanel projectionPanel;
+    private SettingsPanel settingsPanel;
 
     private final Runnable clockTick = new Runnable() {
         @Override
@@ -90,11 +93,16 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
-        unit = Math.max(getResources().getDisplayMetrics().widthPixels,
-                getResources().getDisplayMetrics().heightPixels) / 1920f;
-        prefs = getSharedPreferences("launcher", MODE_PRIVATE);
-        setContentView(buildRoot());
-        reload();
+        ui = new Ui(this);
+        prefs = new Prefs(getSharedPreferences("launcher", MODE_PRIVATE));
+        FrameLayout root = buildRoot();
+        setContentView(root);
+        sheet = new Sheet(ui, root, scroll);
+        wifiPanel = new WifiPanel(this, ui, sheet);
+        bluetoothPanel = new BluetoothPanel(this, sheet);
+        projectionPanel = new ProjectionPanel(this, sheet);
+        settingsPanel = new SettingsPanel(this, sheet, prefs, this);
+        restyle();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -120,6 +128,7 @@ public final class HomeActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        sheet.close();
         unregisterReceiver(packageChanges);
         super.onDestroy();
     }
@@ -127,6 +136,7 @@ public final class HomeActivity extends Activity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        sheet.close();
         if ("apps".equals(intent.getStringExtra("open"))) {
             focusFirst(appsRow);
         } else {
@@ -138,32 +148,77 @@ public final class HomeActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        // This is the home screen: there is nothing to go back to.
+        // This is the home screen: Back only closes an open panel.
+        sheet.onBack();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // The remote's Menu key opens the launcher settings from anywhere on the home screen.
+        if (keyCode == KeyEvent.KEYCODE_MENU && !sheet.isOpen()) {
+            settingsPanel.open();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        if (requestCode == WifiPanel.PERMISSION_REQUEST) wifiPanel.onPermissionResult();
+    }
+
+    // ------------------------------------------------------------------ SettingsPanel.Host
+
+    @Override
+    public void restyle() {
+        int accent = prefs.accent();
+        kicker.setTextColor(accent);
+        String wallpaper = prefs.wallpaper();
+        glow.setVisibility(Prefs.WALLPAPER_PLAIN.equals(wallpaper) ? View.GONE : View.VISIBLE);
+        if (Prefs.WALLPAPER_ACCENT.equals(wallpaper)) animateTint(accent);
+        timeBlock.setVisibility(prefs.showClock() ? View.VISIBLE : View.INVISIBLE);
+        projectorSection.setVisibility(prefs.showProjector() ? View.VISIBLE : View.GONE);
+        appsSection.setVisibility(prefs.showApps() ? View.VISIBLE : View.GONE);
+        reload();
+    }
+
+    @Override
+    public List<AppRepo.App> apps() {
+        return apps;
+    }
+
+    @Override
+    public void start(Intent intent, String label) {
+        try {
+            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (RuntimeException e) {
+            toast(getString(R.string.launch_failed, label));
+        }
     }
 
     // ------------------------------------------------------------------ layout
 
     private int px(float designUnits) {
-        return Math.round(designUnits * unit);
+        return ui.px(designUnits);
     }
 
-    private View buildRoot() {
+    private FrameLayout buildRoot() {
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(INK);
+        root.setBackgroundColor(Ui.INK);
 
-        // Dynamic wallpaper: a large soft glow tinted with the focused app's colour.
-        View glow = new View(this);
+        // Wallpaper: a large soft glow, tinted with the focused app's colour or the accent.
+        glow = new View(this);
         aurora = new GradientDrawable();
         aurora.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         aurora.setGradientRadius(px(700));
-        aurora.setColors(new int[] {withAlpha(tint, 150), 0});
+        aurora.setColors(new int[] {Ui.withAlpha(tint, 150), 0});
         glow.setBackground(aurora);
         FrameLayout.LayoutParams glowLp = new FrameLayout.LayoutParams(px(1500), px(1500), Gravity.TOP | Gravity.END);
         glow.setTranslationX(px(320));
         glow.setTranslationY(-px(640));
         root.addView(glow, glowLp);
-        root.addView(scrim(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {withAlpha(INK, 235), withAlpha(INK, 90), 0}));
-        root.addView(scrim(GradientDrawable.Orientation.BOTTOM_TOP, new int[] {withAlpha(INK, 240), withAlpha(INK, 50), 0}));
+        root.addView(scrim(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {Ui.withAlpha(Ui.INK, 235), Ui.withAlpha(Ui.INK, 90), 0}));
+        root.addView(scrim(GradientDrawable.Orientation.BOTTOM_TOP, new int[] {Ui.withAlpha(Ui.INK, 240), Ui.withAlpha(Ui.INK, 50), 0}));
 
         scroll = new ScrollView(this);
         scroll.setVerticalScrollBarEnabled(false);
@@ -183,7 +238,9 @@ public final class HomeActivity extends Activity {
         column.addView(buildHero());
         favoritesRow = addRow(column, R.string.row_favorites);
         projectorRow = addRow(column, R.string.row_projector);
+        projectorSection = (View) projectorRow.getParent().getParent();
         appsRow = addRow(column, R.string.row_apps);
+        appsSection = (View) appsRow.getParent().getParent();
         return root;
     }
 
@@ -201,36 +258,37 @@ public final class HomeActivity extends Activity {
 
         LinearLayout time = new LinearLayout(this);
         time.setOrientation(LinearLayout.VERTICAL);
-        clock = text(92, FG, Typeface.create("sans-serif-light", Typeface.NORMAL));
+        clock = ui.text(92, Ui.FG, Typeface.create("sans-serif-light", Typeface.NORMAL));
         clock.setLetterSpacing(-0.03f);
-        date = text(26, DIM, Typeface.DEFAULT);
+        date = ui.text(26, Ui.DIM, Typeface.DEFAULT);
         time.addView(clock);
         time.addView(date);
+        timeBlock = time;
         bar.addView(time, new LinearLayout.LayoutParams(0, -2, 1));
 
-        bar.addView(statusButton(R.drawable.ic_wifi, R.string.wifi, R.string.wifi_sub, Settings.ACTION_WIFI_SETTINGS));
-        bar.addView(statusButton(R.drawable.ic_bluetooth, R.string.bluetooth, R.string.bluetooth_sub, Settings.ACTION_BLUETOOTH_SETTINGS));
-        bar.addView(statusButton(R.drawable.ic_settings, R.string.settings, R.string.settings_sub, Settings.ACTION_SETTINGS));
+        bar.addView(statusButton(R.drawable.ic_wifi, R.string.wifi, R.string.wifi_sub, v -> wifiPanel.open()));
+        bar.addView(statusButton(R.drawable.ic_bluetooth, R.string.bluetooth, R.string.bluetooth_sub, v -> bluetoothPanel.open()));
+        bar.addView(statusButton(R.drawable.ic_settings, R.string.settings_launcher, R.string.settings_launcher_sub, v -> settingsPanel.open()));
         return bar;
     }
 
-    private View statusButton(int icon, int label, int sub, String action) {
+    private View statusButton(int icon, int label, int sub, View.OnClickListener click) {
         FrameLayout b = new FrameLayout(this);
-        GradientDrawable bg = glassShape(px(32));
+        GradientDrawable bg = ui.glass(px(32));
         b.setBackground(bg);
         ImageView iv = new ImageView(this);
         iv.setImageResource(icon);
-        iv.setColorFilter(FG);
+        iv.setColorFilter(Ui.FG);
         b.addView(iv, new FrameLayout.LayoutParams(px(28), px(28), Gravity.CENTER));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(64), px(64));
         lp.leftMargin = px(16);
         lp.topMargin = px(10);
         b.setLayoutParams(lp);
-        makeFocusable(b, 1.12f, getString(R.string.kicker_system), getString(label), getString(sub), ACCENT, focused -> {
-            bg.setColor(focused ? FG : GLASS);
-            iv.setColorFilter(focused ? INK : FG);
+        makeFocusable(b, 1.12f, getString(R.string.kicker_system), getString(label), getString(sub), 0, focused -> {
+            bg.setColor(focused ? Ui.FG : Ui.GLASS);
+            iv.setColorFilter(focused ? Ui.INK : Ui.FG);
         });
-        b.setOnClickListener(v -> start(new Intent(action), getString(label)));
+        b.setOnClickListener(click);
         return b;
     }
 
@@ -238,14 +296,14 @@ public final class HomeActivity extends Activity {
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setPadding(0, px(56), 0, 0);
-        kicker = text(22, ACCENT, Typeface.DEFAULT_BOLD);
+        kicker = ui.text(22, prefs.accent(), Typeface.DEFAULT_BOLD);
         kicker.setLetterSpacing(0.14f);
         kicker.setAllCaps(true);
-        title = text(84, FG, Typeface.DEFAULT_BOLD);
+        title = ui.text(84, Ui.FG, Typeface.DEFAULT_BOLD);
         title.setLetterSpacing(-0.03f);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
-        subtitle = text(28, DIM, Typeface.DEFAULT);
+        subtitle = ui.text(28, Ui.DIM, Typeface.DEFAULT);
         subtitle.setSingleLine(true);
         subtitle.setEllipsize(TextUtils.TruncateAt.END);
         hero.addView(kicker);
@@ -255,11 +313,16 @@ public final class HomeActivity extends Activity {
         return hero;
     }
 
+    /** Adds a heading and a horizontal row; both sit in one section so they hide together. */
     private LinearLayout addRow(LinearLayout column, int heading) {
-        TextView h = text(26, DIM, Typeface.DEFAULT_BOLD);
+        LinearLayout section = new LinearLayout(this);
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setClipChildren(false);
+        section.setClipToPadding(false);
+        TextView h = ui.text(26, Ui.DIM, Typeface.DEFAULT_BOLD);
         h.setText(heading);
         h.setPadding(px(24), px(18), 0, 0);
-        column.addView(h);
+        section.addView(h);
 
         HorizontalScrollView hs = new HorizontalScrollView(this);
         hs.setHorizontalScrollBarEnabled(false);
@@ -273,7 +336,8 @@ public final class HomeActivity extends Activity {
         row.setClipToPadding(false);
         row.setPadding(px(24), px(26), px(96), px(34));
         hs.addView(row);
-        column.addView(hs);
+        section.addView(hs);
+        column.addView(section);
         return row;
     }
 
@@ -281,7 +345,7 @@ public final class HomeActivity extends Activity {
 
     private void reload() {
         apps = AppRepo.load(this);
-        List<AppRepo.App> favorites = AppRepo.favorites(prefs, apps);
+        List<AppRepo.App> favorites = AppRepo.favorites(prefs.raw(), apps);
         View focused = getCurrentFocus();
 
         favoritesRow.removeAllViews();
@@ -289,27 +353,35 @@ public final class HomeActivity extends Activity {
         favoritesRow.addView(addFavoriteCard());
 
         projectorRow.removeAllViews();
-        addTile(projectorRow, R.drawable.ic_projector, R.string.projection, R.string.projection_sub,
-                new Intent("action.htcsettings.prjsettings"), 0xFF8F6BFF);
-        addTile(projectorRow, R.drawable.ic_wifi, R.string.wifi, R.string.wifi_sub,
-                new Intent(Settings.ACTION_WIFI_SETTINGS), 0xFF4CC4FF);
-        addTile(projectorRow, R.drawable.ic_bluetooth, R.string.bluetooth, R.string.bluetooth_sub,
-                new Intent(Settings.ACTION_BLUETOOTH_SETTINGS), 0xFF5B7CFF);
+        projectorRow.addView(tile(R.drawable.ic_projector, getString(R.string.projection), null, getString(R.string.projection_sub),
+                0xFF8F6BFF, v -> projectionPanel.open(), 220));
+        if (ProjectionPanel.hasHdmi(this)) {
+            projectorRow.addView(tile(R.drawable.ic_hdmi, getString(R.string.hdmi), null, getString(R.string.hdmi_sub),
+                    0xFFFF9F43, v -> ProjectionPanel.openHdmi(this), 220));
+        }
+        projectorRow.addView(tile(R.drawable.ic_wifi, getString(R.string.wifi), null, getString(R.string.wifi_sub),
+                0xFF4CC4FF, v -> wifiPanel.open(), 220));
+        projectorRow.addView(tile(R.drawable.ic_bluetooth, getString(R.string.bluetooth), null, getString(R.string.bluetooth_sub),
+                0xFF5B7CFF, v -> bluetoothPanel.open(), 220));
         projectorRow.addView(remoteTile());
 
         appsRow.removeAllViews();
-        for (AppRepo.App a : apps) appsRow.addView(appIcon(a));
+        Set<String> hidden = prefs.hidden();
+        for (AppRepo.App a : apps) {
+            if (!hidden.contains(a.pkg())) appsRow.addView(appIcon(a));
+        }
 
-        if (focused == null || !focused.isAttachedToWindow()) main.post(() -> focusFirst(favoritesRow));
+        if (!sheet.isOpen() && (focused == null || !focused.isAttachedToWindow())) main.post(() -> focusFirst(favoritesRow));
     }
 
     private View favoriteCard(AppRepo.App a) {
         FrameLayout card = new FrameLayout(this);
         GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[] {a.color, darken(a.color, 0.45f)});
+                new int[] {a.color, Ui.darken(a.color, 0.45f)});
         bg.setCornerRadius(px(20));
         card.setBackground(bg);
         card.setClipToOutline(true);
+        int[] size = prefs.favoriteSize();
         if (a.banner != null) {
             ImageView iv = new ImageView(this);
             iv.setImageDrawable(a.banner);
@@ -321,15 +393,16 @@ public final class HomeActivity extends Activity {
             inner.setGravity(Gravity.CENTER);
             ImageView iv = new ImageView(this);
             iv.setImageDrawable(a.icon);
-            inner.addView(iv, new LinearLayout.LayoutParams(px(88), px(88)));
-            TextView label = text(26, Color.WHITE, Typeface.DEFAULT_BOLD);
+            int icon = size[1] * 4 / 9;
+            inner.addView(iv, new LinearLayout.LayoutParams(px(icon), px(icon)));
+            TextView label = ui.text(26, Color.WHITE, Typeface.DEFAULT_BOLD);
             label.setText(a.label);
             label.setSingleLine(true);
             label.setPadding(px(16), px(10), px(16), 0);
             inner.addView(label);
             card.addView(inner, new FrameLayout.LayoutParams(-1, -1));
         }
-        card.setLayoutParams(cardParams(352, 198, 30));
+        card.setLayoutParams(ui.card(size[0], size[1], 30));
         card.setAlpha(0.8f);
         makeFocusable(card, 1.1f, getString(R.string.kicker_favorite), a.label, a.category(this), a.color, focused -> {
             card.setAlpha(focused ? 1f : 0.8f);
@@ -337,7 +410,7 @@ public final class HomeActivity extends Activity {
         });
         card.setOnClickListener(v -> start(a.launchIntent(), a.label));
         card.setOnLongClickListener(v -> {
-            toggleFavorite(a);
+            settingsPanel.appMenu(a);
             return true;
         });
         return card;
@@ -345,28 +418,28 @@ public final class HomeActivity extends Activity {
 
     private View addFavoriteCard() {
         FrameLayout card = new FrameLayout(this);
-        GradientDrawable bg = glassShape(px(20));
+        GradientDrawable bg = ui.glass(px(20));
         card.setBackground(bg);
         ImageView iv = new ImageView(this);
         iv.setImageResource(R.drawable.ic_add);
-        iv.setColorFilter(DIM);
+        iv.setColorFilter(Ui.DIM);
         card.addView(iv, new FrameLayout.LayoutParams(px(56), px(56), Gravity.CENTER));
-        card.setLayoutParams(cardParams(198, 198, 30));
+        int h = prefs.favoriteSize()[1];
+        card.setLayoutParams(ui.card(h, h, 30));
         makeFocusable(card, 1.1f, getString(R.string.kicker_customize), getString(R.string.add_favorite),
                 getString(R.string.add_favorite_sub), 0xFF7A86A8, focused -> {
-                    bg.setColor(focused ? FG : GLASS);
-                    iv.setColorFilter(focused ? INK : DIM);
+                    bg.setColor(focused ? Ui.FG : Ui.GLASS);
+                    iv.setColorFilter(focused ? Ui.INK : Ui.DIM);
                 });
         card.setOnClickListener(v -> {
+            if (!prefs.showApps()) {
+                settingsPanel.open();
+                return;
+            }
             focusFirst(appsRow);
             toast(getString(R.string.hold_to_favorite));
         });
         return card;
-    }
-
-    private void addTile(LinearLayout row, int icon, int label, int sub, Intent intent, int color) {
-        if (intent.resolveActivity(getPackageManager()) == null) return; // not on this device
-        row.addView(tile(icon, getString(label), null, getString(sub), color, v -> start(intent, getString(label)), 220));
     }
 
     private View remoteTile() {
@@ -376,6 +449,7 @@ public final class HomeActivity extends Activity {
                     else toast(getString(R.string.remote_off_sub));
                 }, 420);
         remoteValue = (TextView) t.findViewWithTag("value");
+        if (remoteUrl != null) remoteValue.setText(remoteUrl.substring(7));
         return t;
     }
 
@@ -383,32 +457,32 @@ public final class HomeActivity extends Activity {
         LinearLayout t = new LinearLayout(this);
         t.setOrientation(LinearLayout.VERTICAL);
         t.setPadding(px(24), px(22), px(24), px(20));
-        GradientDrawable bg = glassShape(px(22));
+        GradientDrawable bg = ui.glass(px(22));
         t.setBackground(bg);
         ImageView iv = new ImageView(this);
         iv.setImageResource(icon);
-        iv.setColorFilter(FG);
+        iv.setColorFilter(Ui.FG);
         t.addView(iv, new LinearLayout.LayoutParams(px(34), px(34)));
         View spacer = new View(this);
         t.addView(spacer, new LinearLayout.LayoutParams(0, 0, 1));
-        TextView name = text(24, FG, Typeface.DEFAULT_BOLD);
+        TextView name = ui.text(24, Ui.FG, Typeface.DEFAULT_BOLD);
         name.setText(label);
         t.addView(name);
         TextView val = null;
         if (value != null) {
-            val = text(19, DIM, Typeface.DEFAULT);
+            val = ui.text(19, Ui.DIM, Typeface.DEFAULT);
             val.setText(value);
             val.setTag("value");
             val.setSingleLine(true);
             t.addView(val);
         }
         final TextView valueView = val;
-        t.setLayoutParams(cardParams(width, 132, 30));
+        t.setLayoutParams(ui.card(width, 132, 30));
         makeFocusable(t, 1.1f, getString(R.string.kicker_system), label, sub, color, focused -> {
-            bg.setColor(focused ? FG : GLASS);
-            iv.setColorFilter(focused ? INK : FG);
-            name.setTextColor(focused ? INK : FG);
-            if (valueView != null) valueView.setTextColor(focused ? withAlpha(INK, 170) : DIM);
+            bg.setColor(focused ? Ui.FG : Ui.GLASS);
+            iv.setColorFilter(focused ? Ui.INK : Ui.FG);
+            name.setTextColor(focused ? Ui.INK : Ui.FG);
+            if (valueView != null) valueView.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
             if (focused && valueView != null) {
                 subtitle.setText(remoteUrl != null ? R.string.remote_on_sub : R.string.remote_off_sub);
             }
@@ -422,13 +496,13 @@ public final class HomeActivity extends Activity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
         FrameLayout box = new FrameLayout(this);
-        GradientDrawable bg = glassShape(px(34));
+        GradientDrawable bg = ui.glass(px(34));
         box.setBackground(bg);
         ImageView iv = new ImageView(this);
         iv.setImageDrawable(a.icon);
         box.addView(iv, new FrameLayout.LayoutParams(px(84), px(84), Gravity.CENTER));
         col.addView(box, new LinearLayout.LayoutParams(px(132), px(132)));
-        TextView label = text(21, DIM, Typeface.DEFAULT);
+        TextView label = ui.text(21, Ui.DIM, Typeface.DEFAULT);
         label.setText(a.label);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
@@ -436,14 +510,14 @@ public final class HomeActivity extends Activity {
         LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(px(170), -2);
         llp.topMargin = px(14);
         col.addView(label, llp);
-        col.setLayoutParams(cardParams(170, -1, 14));
+        col.setLayoutParams(ui.card(170, -1, 14));
         makeFocusable(col, 1.1f, getString(R.string.kicker_app), a.label, a.category(this), a.color, focused -> {
-            bg.setColor(focused ? FG : GLASS);
-            label.setTextColor(focused ? FG : DIM);
+            bg.setColor(focused ? Ui.FG : Ui.GLASS);
+            label.setTextColor(focused ? Ui.FG : Ui.DIM);
         });
         col.setOnClickListener(v -> start(a.launchIntent(), a.label));
         col.setOnLongClickListener(v -> {
-            toggleFavorite(a);
+            settingsPanel.appMenu(a);
             return true;
         });
         return col;
@@ -455,6 +529,7 @@ public final class HomeActivity extends Activity {
         void apply(boolean focused);
     }
 
+    /** color 0 = use the accent colour. */
     private void makeFocusable(View v, float scale, String kick, String head, String sub, int color, FocusStyle style) {
         v.setFocusable(true);
         v.setClickable(true);
@@ -466,7 +541,7 @@ public final class HomeActivity extends Activity {
                 kicker.setText(kick);
                 title.setText(head);
                 subtitle.setText(sub);
-                setTint(color);
+                setTint(color != 0 ? color : prefs.accent());
             }
             style.apply(focused);
         });
@@ -480,33 +555,25 @@ public final class HomeActivity extends Activity {
         }
         GradientDrawable ring = new GradientDrawable();
         ring.setCornerRadius(px(radius));
-        ring.setStroke(px(3), withAlpha(Color.WHITE, 235));
+        ring.setStroke(px(3), Ui.withAlpha(Color.WHITE, 235));
         v.setForeground(ring);
     }
 
+    /** Follows the focused item, unless the wallpaper is set to a fixed colour. */
     private void setTint(int target) {
+        if (!Prefs.WALLPAPER_DYNAMIC.equals(prefs.wallpaper())) return;
+        animateTint(target);
+    }
+
+    private void animateTint(int target) {
         if (tintAnimator != null) tintAnimator.cancel();
         tintAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), tint, target);
         tintAnimator.setDuration(900);
         tintAnimator.addUpdateListener(an -> {
             tint = (int) an.getAnimatedValue();
-            aurora.setColors(new int[] {withAlpha(tint, 150), 0});
+            aurora.setColors(new int[] {Ui.withAlpha(tint, 150), 0});
         });
         tintAnimator.start();
-    }
-
-    private void toggleFavorite(AppRepo.App a) {
-        boolean added = AppRepo.toggleFavorite(prefs, apps, a);
-        toast(getString(added ? R.string.fav_added : R.string.fav_removed, a.label));
-        reload();
-    }
-
-    private void start(Intent intent, String label) {
-        try {
-            startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        } catch (RuntimeException e) {
-            toast(getString(R.string.launch_failed, label));
-        }
     }
 
     private void focusFirst(LinearLayout row) {
@@ -556,39 +623,6 @@ public final class HomeActivity extends Activity {
             // Fall through.
         }
         return "127.0.0.1";
-    }
-
-    // ------------------------------------------------------------------ helpers
-
-    private TextView text(float size, int color, Typeface face) {
-        TextView t = new TextView(this);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, px(size));
-        t.setTextColor(color);
-        t.setTypeface(face);
-        t.setIncludeFontPadding(false);
-        return t;
-    }
-
-    private GradientDrawable glassShape(int radius) {
-        GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(radius);
-        d.setColor(GLASS);
-        d.setStroke(Math.max(1, px(1)), EDGE);
-        return d;
-    }
-
-    private LinearLayout.LayoutParams cardParams(int w, int h, int gap) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(w), h < 0 ? ViewGroup.LayoutParams.WRAP_CONTENT : px(h));
-        lp.rightMargin = px(gap);
-        return lp;
-    }
-
-    private static int withAlpha(int color, int alpha) {
-        return (color & 0x00FFFFFF) | (alpha << 24);
-    }
-
-    private static int darken(int color, float factor) {
-        return Color.rgb((int) (Color.red(color) * factor), (int) (Color.green(color) * factor), (int) (Color.blue(color) * factor));
     }
 
     private void toast(String msg) {

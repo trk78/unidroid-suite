@@ -123,6 +123,21 @@ final class AppRepo {
         return added;
     }
 
+    /** Moves a favorite one place left (-1) or right (+1). Returns false at either end. */
+    static boolean moveFavorite(SharedPreferences prefs, List<App> apps, App app, int delta) {
+        List<App> favs = favorites(prefs, apps);
+        int from = favs.indexOf(app);
+        int to = from + delta;
+        if (from < 0 || to < 0 || to >= favs.size()) return false;
+        Collections.swap(favs, from, to);
+        save(prefs, favs);
+        return true;
+    }
+
+    static boolean isFavorite(SharedPreferences prefs, List<App> apps, App app) {
+        return favorites(prefs, apps).contains(app);
+    }
+
     private static void save(SharedPreferences prefs, List<App> favs) {
         StringBuilder sb = new StringBuilder();
         for (App a : favs) {

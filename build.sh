@@ -17,16 +17,18 @@ ANDROID_JAR="$PLATFORM/android.jar"
 KEYSTORE="${KEYSTORE:-$HOME/.android/debug.keystore}"
 KEY_ALIAS="${KEY_ALIAS:-androiddebugkey}"
 KEY_PASS="${KEY_PASS:-android}"
-VERSION_CODE=1
-VERSION_NAME=0.1.0
+VERSION_CODE=2
+VERSION_NAME=0.2.0
 
 OUT="$DIR/build"
 rm -rf "$OUT" && mkdir -p "$OUT/gen" "$OUT/classes"
 
 echo "==> resources"
+# targetSdk 28 keeps the Wi-Fi calls (turn on/off, add and join a network) that Android 10+
+# removed for apps targeting newer versions: the Wi-Fi panel then works without root.
 "$(tool aapt2)" compile --dir "$DIR/res" -o "$OUT/res.zip"
 "$(tool aapt2)" link -I "$ANDROID_JAR" --manifest "$DIR/AndroidManifest.xml" \
-  --min-sdk-version 21 --target-sdk-version 30 \
+  --min-sdk-version 21 --target-sdk-version 28 \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   --java "$OUT/gen" -o "$OUT/base.apk" "$OUT/res.zip"
 

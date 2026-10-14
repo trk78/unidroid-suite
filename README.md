@@ -21,9 +21,12 @@ Free · No ads · No premium tier · No account · ~80 KB
 | | |
 |---|---|
 | ⚡ **Light** | Plain Android views, no AndroidX, no Gradle: an ~80 KB APK that opens instantly on 1 GB devices |
-| ⭐ **Favorites** | Big 16:9 app banners. Hold OK on any app to pin or unpin it |
+| ⭐ **Favorites** | Big 16:9 app banners, three sizes. Hold OK on any app for its menu: pin, move, hide, app info, uninstall |
 | 🎨 **Dynamic background** | The glow behind the screen takes the colour of the focused app |
-| 📽️ **Projector row** | Projection settings (keystone, zoom, mode), Wi-Fi and Bluetooth one click away |
+| 📽️ **Projector row** | Projection, HDMI input, Wi-Fi and Bluetooth one click away |
+| 🪟 **Native panels** | Wi-Fi (scan, connect, forget), Bluetooth (pair, connect, forget) and keystone open as side panels, not the vendor's screens |
+| 📐 **Keystone** | Move each corner live with the D-pad (rooted Allwinner H713 projectors) |
+| 🖌️ **Customizable** | Background (app colour, accent, plain black), six accent colours, clock on/off, rows on/off, hidden apps |
 | 📱 **UniDroid Remote aware** | Detects [UniDroid Remote](https://github.com/trk78/unidroid-remote) and shows the address to open on your phone |
 | 🌍 **English and French** | Follows the device language |
 | 📺 **Any screen** | Laid out on a 1920-unit grid, identical on 720p and 1080p |
@@ -50,7 +53,8 @@ sequenceDiagram
 1. Apps are listed from the `LEANBACK_LAUNCHER` and `LAUNCHER` entry points, TV entry preferred: [`AppRepo.java`](src/app/unidroid/launcher/AppRepo.java).
 2. Favorites are package names saved in the app's preferences. First run picks known streaming apps, then any app with a TV banner.
 3. The home screen is built in code, without XML layouts: [`HomeActivity.java`](src/app/unidroid/launcher/HomeActivity.java).
-4. Projector shortcuts are only shown when the device answers the matching settings intent.
+4. Wi-Fi and Bluetooth panels use the public Android APIs. The app targets SDK 28 so it can still turn Wi-Fi on/off and join a network without root.
+5. Keystone writes the eight corner offsets to `persist.display.keystone_*` and pushes them to SurfaceFlinger (transaction 1050), as the vendor app does. This needs root: [`ProjectionPanel.java`](src/app/unidroid/launcher/ProjectionPanel.java).
 
 ## 🚀 Build and install
 
@@ -80,7 +84,15 @@ adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
 ├── AndroidManifest.xml         — HOME + LEANBACK_LAUNCHER entry, package visibility queries
 ├── src/app/unidroid/launcher/
 │   ├── HomeActivity.java       — Home screen: clock, hero, rows, focus effects
-│   └── AppRepo.java            — Installed apps, favorites, banner colour
+│   ├── Sheet.java              — Side panel: header and focusable rows (toggles, choices)
+│   ├── WifiPanel.java          — Wi-Fi: scan, connect with a password, forget
+│   ├── BluetoothPanel.java     — Bluetooth: paired devices, scan, pair, forget
+│   ├── ProjectionPanel.java    — Keystone corners, HDMI input (root)
+│   ├── SettingsPanel.java      — Launcher settings and the per-app menu
+│   ├── AppRepo.java            — Installed apps, favorites, banner colour
+│   ├── Prefs.java              — Look-and-feel choices
+│   ├── Root.java               — su commands off the main thread
+│   └── Ui.java                 — Palette and view helpers
 ├── res/
 │   ├── drawable/               — Vector icons
 │   ├── drawable-nodpi/         — App icon and TV banner
@@ -91,8 +103,9 @@ adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
 
 ## ⚠️ Known limitations
 
-- **Early version (0.1)**: no settings screen, no wallpaper choice, no app reordering yet.
-- **Projector controls** open the vendor's own screens. Direct keystone and zoom control needs system rights, planned through UniDroid Remote on rooted devices.
+- **Projection mode and zoom** still open the vendor's screen: they go through a private vendor service that is not mapped yet.
+- **Keystone** needs root, and the corner offsets are vendor-specific (Allwinner H713).
+- **Bluetooth connect/disconnect** relies on hidden Android APIs: best effort, pairing always works.
 - **Tested on**: Magcubic HY300 (Allwinner H713, Android 11).
 
 ## 🤝 Contributing
@@ -102,7 +115,8 @@ Issues and pull requests are welcome: [open an issue](https://github.com/trk78/u
 Open ideas:
 - keystone, zoom, focus and input switching directly from the launcher (through UniDroid Remote);
 - install UniDroid Remote from the launcher, with a QR code to open it on the phone;
-- side menu with categories, custom wallpapers, reorder favorites;
+- side menu with categories, custom wallpapers;
+- projection mode (front, rear, ceiling) and zoom without the vendor screen;
 - custom remote buttons configured from the TV.
 
 ## 📄 License
