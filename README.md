@@ -31,6 +31,10 @@ browser (phone/PC)  ──HTTP──▶  httpd on device  ──▶  input keyev
 
 **Controller (what you hold):** any device with a web browser on the same network.
 
+## Tested on
+
+- **Magcubic HY300** projector — Allwinner H713, Android 11, rooted with Magisk. Full D-pad, media keys and keyboard working from an iPhone browser.
+
 ## Install (rooted, with Magisk)
 
 From a computer with `adb` and the device connected (USB or `adb connect <ip>:5555`):
