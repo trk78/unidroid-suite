@@ -8,3 +8,6 @@ Thumbs.db
 # local notes / scratch
 *.log
 scratch/
+
+# build output (./build.sh)
+module/unidroid-server.jar

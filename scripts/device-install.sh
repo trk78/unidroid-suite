@@ -4,19 +4,26 @@
 SRC=${1:-/data/local/tmp/unidroid-remote}
 MOD=/data/adb/modules/unidroid-remote
 
-if [ ! -f "$SRC/module.prop" ]; then
-  echo "error: module files not found at $SRC" >&2
+if [ ! -f "$SRC/module.prop" ] || [ ! -f "$SRC/unidroid-server.jar" ]; then
+  echo "error: module files (module.prop, unidroid-server.jar) not found at $SRC" >&2
   exit 1
 fi
+
+# Stop any running instance: the boot loop first (it would respawn the server), then the server.
+# v0.1 ran BusyBox httpd from the module web root; stop that too.
+pkill -f "$MOD/service.sh" 2>/dev/null
+pkill -f "$MOD/webroot" 2>/dev/null
+for pid in $(pidof unidroid-remote); do kill "$pid"; done
+sleep 1
 
 rm -rf "$MOD"
 mkdir -p "$MOD"
 cp -r "$SRC/." "$MOD/"
 
-chmod 0755 "$MOD/service.sh" "$MOD/webroot/cgi-bin/key" "$MOD/webroot/cgi-bin/text"
-chmod 0644 "$MOD/module.prop"
-# BusyBox httpd serves files; make the web root world-readable.
-find "$MOD/webroot" -type f ! -path "*/cgi-bin/*" -exec chmod 0644 {} +
+chmod 0755 "$MOD/service.sh"
+chmod 0644 "$MOD/module.prop" "$MOD/unidroid-server.jar"
+find "$MOD/webroot" -type d -exec chmod 0755 {} +
+find "$MOD/webroot" -type f -exec chmod 0644 {} +
 
 echo "Installed to $MOD (boot-persistent via Magisk)."
 

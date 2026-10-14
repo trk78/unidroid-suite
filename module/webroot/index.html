@@ -2,133 +2,491 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UniDroid">
+<meta name="application-name" content="UniDroid">
+<meta name="description" content="Remote control and keyboard for your Android TV, box or projector.">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>UniDroid Remote</title>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#1a1e26; --panel2:#232936; --accent:#4f8cff;
-    --accent2:#2b63c4; --txt:#e8edf5; --muted:#8a93a6; --ok:#36c76f;
+:root {
+  --bg: #000; --fg: #f5f5f7; --dim: rgba(235,235,245,.55);
+  --glass: rgba(255,255,255,.07); --glass-hi: rgba(255,255,255,.17);
+  --edge: rgba(255,255,255,.13); --spec: rgba(255,255,255,.16);
+  --shadow: 0 12px 32px rgba(0,0,0,.35);
+  --field: rgba(118,118,128,.24);
+  --accent: #0a84ff; --red: #ff453a; --green: #30d158; --orange: #ff9f0a;
+  --glow1: rgba(10,132,255,.20); --glow2: rgba(191,90,242,.14); --touch: rgba(10,132,255,.38);
+  --rim: rgba(120,180,255,.6);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f2f2f7; --fg: #1d1d1f; --dim: rgba(60,60,67,.55);
+    --glass: rgba(255,255,255,.6); --glass-hi: rgba(255,255,255,1);
+    --edge: rgba(0,0,0,.07); --spec: rgba(255,255,255,.9);
+    --shadow: 0 10px 28px rgba(0,0,0,.08);
+    --field: rgba(118,118,128,.12);
+    --accent: #007aff; --red: #ff3b30; --green: #34c759; --orange: #ff9500;
+    --glow1: rgba(0,122,255,.13); --glow2: rgba(175,82,222,.10); --touch: rgba(0,122,255,.22);
+    --rim: rgba(0,122,255,.45);
+    color-scheme: light;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-  html,body{margin:0;height:100%}
-  body{
-    background:var(--bg);color:var(--txt);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    display:flex;flex-direction:column;align-items:center;
-    padding:16px;gap:14px;max-width:460px;margin:0 auto;padding-bottom:40px;
-  }
-  h1{font-size:15px;font-weight:600;letter-spacing:.5px;color:var(--muted);margin:4px 0 0;text-transform:uppercase}
-  .row{display:flex;gap:12px;width:100%;justify-content:center}
-  button{
-    background:var(--panel2);color:var(--txt);border:none;border-radius:16px;
-    font-size:20px;font-weight:600;cursor:pointer;transition:transform .05s,background .1s;
-    display:flex;align-items:center;justify-content:center;
-  }
-  button:active{transform:scale(.93);background:var(--accent2)}
-  .top button{flex:1;height:56px;font-size:15px;background:var(--panel)}
-  .dpad{
-    position:relative;width:260px;height:260px;margin:4px auto;
-    background:var(--panel);border-radius:50%;
-    display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr 1fr;
-  }
-  .dpad button{background:transparent;border-radius:0;font-size:26px;color:var(--muted)}
-  .dpad button:active{background:transparent;color:var(--accent)}
-  .dpad .ok{
-    grid-column:2;grid-row:2;background:var(--accent);color:#fff;border-radius:50%;
-    margin:10px;font-size:17px;font-weight:700;box-shadow:0 4px 16px rgba(79,140,255,.4)
-  }
-  .dpad .ok:active{background:var(--accent2)}
-  .up{grid-column:2;grid-row:1}.down{grid-column:2;grid-row:3}
-  .left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}
-  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;width:100%}
-  .grid3 button{height:58px;font-size:15px}
-  .kb{width:100%;display:flex;gap:10px;margin-top:4px}
-  .kb input{
-    flex:1;background:var(--panel2);border:2px solid transparent;border-radius:14px;
-    color:var(--txt);font-size:17px;padding:0 16px;height:56px;outline:none;-webkit-user-select:text;user-select:text
-  }
-  .kb input:focus{border-color:var(--accent)}
-  .kb .send{width:70px;height:56px;background:var(--accent);color:#fff}
-  .mini{display:flex;gap:10px;width:100%}
-  .mini button{flex:1;height:48px;font-size:14px;background:var(--panel)}
-  .toast{
-    position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(60px);
-    background:var(--ok);color:#06220f;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:700;
-    transition:transform .25s;pointer-events:none;opacity:.95
-  }
-  .toast.show{transform:translateX(-50%) translateY(0)}
-  .toast.err{background:#e5484d;color:#fff}
-  .lbl{font-size:11px;color:var(--muted);width:100%;text-align:center;margin:-4px 0 -6px}
+}
+@property --a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -.01em;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  overscroll-behavior: none; touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(70% 45% at 50% 34%, var(--glow1), transparent 70%),
+    radial-gradient(55% 35% at 85% 100%, var(--glow2), transparent 70%);
+}
+.app {
+  min-height: 100dvh; max-width: 440px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 26px;
+  padding: calc(env(safe-area-inset-top) + 14px) 22px calc(env(safe-area-inset-bottom) + 22px);
+}
+
+.glass {
+  background: var(--glass);
+  border: .5px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--spec), var(--shadow);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+}
+.i { width: 26px; height: 26px; display: block; pointer-events: none; }
+
+/* ---------- header */
+header { display: flex; align-items: center; gap: 10px; }
+.status {
+  display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 15px 0 13px;
+  border-radius: 19px; font-size: 15px; font-weight: 600; margin-right: auto; min-width: 0;
+}
+.status #dev { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--orange); box-shadow: 0 0 10px var(--orange); transition: background .3s, box-shadow .3s; }
+body[data-conn=online] .dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
+body[data-conn=offline] .dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+body[data-conn=connecting] .dot { animation: breathe 1.2s ease-in-out infinite; }
+#lat { color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
+@keyframes breathe { 50% { opacity: .3; } }
+
+/* ---------- buttons */
+.btn {
+  appearance: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--fg);
+  display: grid; place-items: center; cursor: pointer;
+  transition: transform .45s cubic-bezier(.2,1.7,.35,1), background-color .25s;
+}
+.btn.pressed { transform: scale(.88); background-color: var(--glass-hi); transition-duration: .07s; }
+.round { width: 68px; height: 68px; border-radius: 50%; justify-self: center; }
+.small { width: 40px; height: 40px; border-radius: 50%; }
+.small .i { width: 21px; height: 21px; }
+.power { color: var(--red); }
+
+/* ---------- touch pad */
+.pad-wrap { flex: 1; display: grid; place-items: center; }
+.pad {
+  position: relative; width: min(80vw, 320px, 44dvh); aspect-ratio: 1; border-radius: 50%;
+  touch-action: none; overflow: hidden; cursor: pointer;
+}
+.pad::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; padding: 1.3px;
+  background: conic-gradient(from var(--a), transparent 0 50%, var(--rim) 72%, transparent 94%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: spin 9s linear infinite; pointer-events: none;
+}
+body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .25; }
+.pad::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle 95px at var(--x, 50%) var(--y, 50%), var(--touch), transparent 70%);
+  transition: opacity .35s;
+}
+.pad.touch::after { opacity: 1; transition-duration: .05s; }
+.pad .ok {
+  position: absolute; inset: 31%; border-radius: 50%;
+  border: .5px solid var(--edge); background: var(--glass);
+  box-shadow: inset 0 1px 0 var(--spec);
+  transition: transform .45s cubic-bezier(.2,1.7,.35,1), background-color .25s;
+}
+.pad .chev { position: absolute; width: 22px; height: 22px; color: var(--dim); transition: color .3s; }
+.chev[data-z=UP]    { top: 9%;    left: calc(50% - 11px); }
+.chev[data-z=DOWN]  { bottom: 9%; left: calc(50% - 11px); }
+.chev[data-z=LEFT]  { left: 9%;   top: calc(50% - 11px); }
+.chev[data-z=RIGHT] { right: 9%;  top: calc(50% - 11px); }
+.chev.on { color: var(--accent); animation: blip .28s ease-out; transition-duration: 0s; }
+.ok.on { transform: scale(.92); background-color: var(--glass-hi); transition-duration: .07s; }
+@keyframes blip { 40% { transform: scale(1.35); } }
+@keyframes spin { to { --a: 360deg; } }
+
+/* ---------- controls */
+.controls { display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 18px; }
+.pill {
+  grid-column: span 2; display: flex; align-items: center; justify-content: space-between;
+  height: 68px; border-radius: 34px; padding: 0 6px; margin-right: 14px;
+}
+.pill .btn { width: 56px; height: 56px; border-radius: 50%; background: transparent; }
+.pill .btn.pressed { background: var(--glass-hi); }
+.vol-label { font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .02em; }
+
+/* ---------- keyboard sheet */
+.sheet {
+  position: fixed; left: 12px; right: 12px; bottom: calc(var(--kb, 0px) + 12px); z-index: 10;
+  max-width: 520px; margin: 0 auto; padding: 10px; border-radius: 28px;
+  display: flex; gap: 8px; align-items: center;
+  transform: translateY(calc(100% + 60px)); opacity: 0; pointer-events: none;
+  transition: transform .5s cubic-bezier(.2,1.15,.3,1), opacity .25s;
+}
+body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
+.sheet input {
+  flex: 1; min-width: 0; height: 44px; border: 0; border-radius: 22px; padding: 0 16px;
+  font: inherit; font-size: 17px; color: var(--fg); background: var(--field); outline: none;
+  -webkit-user-select: text; user-select: text;
+}
+.sheet input::placeholder { color: var(--dim); }
+.sheet .btn { width: 44px; height: 44px; border-radius: 50%; flex: none; background: var(--field); }
+.sheet .btn .i { width: 21px; height: 21px; }
+.sheet .done { background: var(--accent); color: #fff; }
+
+/* ---------- landscape / tablets */
+@media (orientation: landscape) and (min-width: 600px) {
+  .app { max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 48px; }
+  header { grid-column: 1 / -1; }
+  .pad { width: min(42vw, 70dvh, 380px); }
+  .controls { align-self: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, .pad::before { animation: none !important; transition-duration: 0s !important; }
+}
 </style>
 </head>
-<body>
-  <h1>UniDroid Remote</h1>
+<body data-conn="connecting">
 
-  <div class="row top">
-    <button onclick="K('POWER')">⏻ Power</button>
-    <button onclick="K('HOME')">⌂ Home</button>
-    <button onclick="K('BACK')">← Back</button>
+<!-- Icons: original drawings in the style of SF Symbols (24px grid, rounded strokes).
+     Swap any <symbol> here to restyle the whole remote. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 14.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3.2v8.3"/><path d="M7.6 6.2a7.6 7.6 0 1 0 8.8 0"/></g></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10.4 3.2h3.2l.5 2.4 1.7.9 2.3-.8 1.6 2.8-1.8 1.6v2l1.8 1.6-1.6 2.8-2.3-.8-1.7.9-.5 2.4h-3.2l-.5-2.4-1.7-.9-2.3.8-1.6-2.8 1.8-1.6v-2L4.3 8.5l1.6-2.8 2.3.8 1.7-.9z"/><circle cx="12" cy="12" r="2.8"/></g></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 13.5L4 9l4.5-4.5"/><path d="M4.5 9h10a5.5 5.5 0 0 1 0 11H11"/></g></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.2V19a1 1 0 0 0 1 1h3.3v-5.2h3.4V20H17a1 1 0 0 0 1-1V9.2"/></g></symbol>
+    <symbol id="i-apps" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g></symbol>
+    <symbol id="i-rew" viewBox="0 0 24 24"><path d="M11.2 6.6v10.8L3.6 12zM20.4 6.6v10.8L12.8 12z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ff" viewBox="0 0 24 24"><path d="M12.8 6.6v10.8l7.6-5.4zM3.6 6.6v10.8l7.6-5.4z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+    <symbol id="i-playpause" viewBox="0 0 24 24"><path d="M3 6.4v11.2l8.6-5.6z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M15.6 6.5v11M20.2 6.5v11" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M3.5 9.6h3.1L11 5.8v12.4l-4.4-3.8H3.5z" fill="currentColor" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M15 9.5l5 5M20 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="6" width="18.4" height="12" rx="2.4" stroke-width="1.8"/><path d="M6.7 9.6h.01M9.6 9.6h.01M12.5 9.6h.01M15.4 9.6h.01M17.6 9.6h.01M6.7 12.2h.01M9.6 12.2h.01M12.5 12.2h.01M15.4 12.2h.01M17.6 12.2h.01" stroke-width="2.1"/><path d="M8.5 14.8h7" stroke-width="1.8"/></g></symbol>
+    <symbol id="i-delete" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 5.5h10.1a1.7 1.7 0 0 1 1.7 1.7v9.6a1.7 1.7 0 0 1-1.7 1.7H9.2L3 12z"/><path d="M12.4 9.6l4.8 4.8M17.2 9.6l-4.8 4.8"/></g></symbol>
+    <symbol id="i-return" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 5v6.5a3 3 0 0 1-3 3H5"/><path d="M9 10.5l-4 4 4 4"/></g></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header>
+    <div class="status glass"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
+    <button class="btn small glass" data-action="settings" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
+    <button class="btn small glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
+  </header>
+
+  <div class="pad-wrap">
+    <div class="pad glass" id="pad" role="application" aria-label="Touch pad: tap, swipe or hold">
+      <div class="ok"></div>
+      <svg class="chev" data-z="UP" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24"/></svg>
+      <svg class="chev" data-z="RIGHT" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24" transform="rotate(90 12 12)"/></svg>
+      <svg class="chev" data-z="DOWN" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24" transform="rotate(180 12 12)"/></svg>
+      <svg class="chev" data-z="LEFT" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24" transform="rotate(-90 12 12)"/></svg>
+    </div>
   </div>
 
-  <div class="dpad">
-    <button class="up"    onclick="K('DPAD_UP')">▲</button>
-    <button class="left"  onclick="K('DPAD_LEFT')">◀</button>
-    <button class="ok"    onclick="K('DPAD_CENTER')">OK</button>
-    <button class="right" onclick="K('DPAD_RIGHT')">▶</button>
-    <button class="down"  onclick="K('DPAD_DOWN')">▼</button>
-  </div>
+  <div class="controls">
+    <button class="btn round glass" data-key="4" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+    <button class="btn round glass" data-key="3" aria-label="Home"><svg class="i"><use href="#i-home"/></svg></button>
+    <button class="btn round glass" data-action="apps" aria-label="Apps"><svg class="i"><use href="#i-apps"/></svg></button>
 
-  <div class="grid3">
-    <button onclick="K('VOLUME_DOWN')">🔉 −</button>
-    <button onclick="K('VOLUME_MUTE')">🔇</button>
-    <button onclick="K('VOLUME_UP')">🔊 +</button>
-  </div>
+    <button class="btn round glass" data-key="89" aria-label="Rewind"><svg class="i"><use href="#i-rew"/></svg></button>
+    <button class="btn round glass" data-key="85" aria-label="Play / Pause"><svg class="i"><use href="#i-playpause"/></svg></button>
+    <button class="btn round glass" data-key="90" aria-label="Fast forward"><svg class="i"><use href="#i-ff"/></svg></button>
 
-  <div class="grid3">
-    <button onclick="K('MENU')">☰ Menu</button>
-    <button onclick="K('MEDIA_PLAY_PAUSE')">⏯</button>
-    <button onclick="K('APP_SWITCH')">▭ Apps</button>
+    <div class="pill glass">
+      <button class="btn" data-key="25" aria-label="Volume down"><svg class="i"><use href="#i-minus"/></svg></button>
+      <button class="btn" data-key="164" aria-label="Mute"><svg class="i"><use href="#i-mute"/></svg></button>
+      <button class="btn" data-key="24" aria-label="Volume up"><svg class="i"><use href="#i-plus"/></svg></button>
+    </div>
+    <button class="btn round glass" id="kb-open" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
   </div>
+</div>
 
-  <div class="lbl">Keyboard — type, then Send</div>
-  <div class="kb">
-    <input id="t" type="text" placeholder="Text to type on the device…"
-           autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
-           onkeydown="if(event.key==='Enter')sendText()">
-    <button class="send" onclick="sendText()">↑</button>
-  </div>
-  <div class="mini">
-    <button onclick="K('DEL')">⌫ Delete</button>
-    <button onclick="K('ENTER')">⏎ Enter</button>
-    <button onclick="K('SEARCH')">🔍 Search</button>
-  </div>
-
-  <div id="toast" class="toast">OK</div>
+<div class="sheet glass" id="sheet">
+  <button class="btn" data-key="67" aria-label="Delete"><svg class="i"><use href="#i-delete"/></svg></button>
+  <input id="text" type="text" placeholder="Type on the TV" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go">
+  <button class="btn" data-key="66" aria-label="Enter"><svg class="i"><use href="#i-return"/></svg></button>
+  <button class="btn done" id="kb-close" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+</div>
 
 <script>
-  const toast=document.getElementById('toast');
-  let tmr;
-  function flash(msg,err){
-    toast.textContent=msg; toast.classList.toggle('err',!!err); toast.classList.add('show');
-    clearTimeout(tmr); tmr=setTimeout(()=>toast.classList.remove('show'),900);
+'use strict';
+const $ = s => document.querySelector(s);
+const KEY = { UP: 19, DOWN: 20, LEFT: 21, RIGHT: 22, OK: 23 };
+
+// ---------------------------------------------------------------- connection
+let ws = null, retry = 0, pingAt = 0, retryTimer = 0;
+
+function connect() {
+  clearTimeout(retryTimer);
+  document.body.dataset.conn = 'connecting';
+  try {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+  } catch (e) { return reconnectLater(); }
+  ws.onopen = () => { retry = 0; document.body.dataset.conn = 'online'; ping(); };
+  ws.onmessage = e => {
+    if (e.data === 'p') {
+      $('#lat').textContent = Math.max(1, Math.round(performance.now() - pingAt)) + ' ms';
+    } else if (e.data.startsWith('i:')) {
+      try {
+        const info = JSON.parse(e.data.slice(2));
+        $('#dev').textContent = info.name || 'Android';
+        document.title = (info.name || 'Android') + ' · Remote';
+      } catch (err) { /* ignore */ }
+    }
+  };
+  ws.onclose = () => { ws = null; document.body.dataset.conn = 'offline'; $('#lat').textContent = ''; reconnectLater(); };
+  ws.onerror = () => { try { ws.close(); } catch (err) { /* ignore */ } };
+}
+function reconnectLater() {
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(connect, Math.min(4000, 250 * 2 ** retry++));
+}
+function ping() {
+  if (ws && ws.readyState === 1) { pingAt = performance.now(); ws.send('p'); }
+}
+setInterval(() => { if (!document.hidden) ping(); }, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && (!ws || ws.readyState > 1)) { retry = 0; connect(); }
+});
+
+// WebSocket first; plain HTTP as a fallback (no hold/repeat there).
+function send(msg) {
+  if (ws && ws.readyState === 1) { ws.send(msg); return; }
+  const type = msg[0], arg = msg.slice(2);
+  if (type === 'k' || type === 'u') fetch('/key?k=' + arg).catch(() => {});
+  else if (type === 't') fetch('/text?t=' + encodeURIComponent(arg)).catch(() => {});
+  else if (type === 'b') for (let i = 0; i < +arg; i++) fetch('/key?k=67').catch(() => {});
+  else if (type === 'a') fetch('/action?a=' + encodeURIComponent(arg)).catch(() => {});
+}
+
+// ---------------------------------------------------------------- haptics
+// iOS Safari has no vibrate(); toggling a native switch gives a light tap (iOS 18+).
+const hapticSwitch = (() => {
+  const label = document.createElement('label');
+  const input = document.createElement('input');
+  input.type = 'checkbox'; input.setAttribute('switch', '');
+  label.appendChild(input);
+  label.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden';
+  document.body.appendChild(label);
+  return label;
+})();
+function haptic() {
+  if (navigator.vibrate) navigator.vibrate(8); else hapticSwitch.click();
+}
+
+// ---------------------------------------------------------------- buttons
+// Press = key down, release = key up: holding a button repeats like a real remote.
+const noDefault = e => e.preventDefault();
+document.querySelectorAll('[data-key]').forEach(btn => {
+  const code = btn.dataset.key;
+  let held = false;
+  btn.addEventListener('touchstart', noDefault, { passive: false });
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    btn.setPointerCapture(e.pointerId);
+    held = true;
+    btn.classList.add('pressed');
+    haptic();
+    send('d:' + code);
+  });
+  const release = () => {
+    if (!held) return;
+    held = false;
+    btn.classList.remove('pressed');
+    send('u:' + code);
+  };
+  btn.addEventListener('pointerup', release);
+  btn.addEventListener('pointercancel', release);
+  btn.addEventListener('lostpointercapture', release);
+});
+
+// Actions (open a screen, launch an app) fire once, on release.
+document.querySelectorAll('[data-action]').forEach(btn => {
+  btn.addEventListener('touchstart', noDefault, { passive: false });
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    btn.classList.add('pressed');
+    haptic();
+  });
+  btn.addEventListener('pointerup', () => {
+    if (!btn.classList.contains('pressed')) return;
+    btn.classList.remove('pressed');
+    send('a:' + btn.dataset.action);
+  });
+  btn.addEventListener('pointerleave', () => btn.classList.remove('pressed'));
+  btn.addEventListener('pointercancel', () => btn.classList.remove('pressed'));
+});
+
+// ---------------------------------------------------------------- touch pad
+// Tap: direction by zone (centre = OK). Swipe: one step every 34 px. Hold: key repeat.
+const pad = $('#pad');
+const STEP = 34, HOLD_MS = 320, DEAD_PX = 10;
+let gesture = null;
+
+function zoneAt(x, y) {
+  const r = pad.getBoundingClientRect();
+  const dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+  if (Math.hypot(dx, dy) < r.width * 0.19) return 'OK';
+  return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'RIGHT' : 'LEFT') : (dy > 0 ? 'DOWN' : 'UP');
+}
+function glowAt(x, y) {
+  const r = pad.getBoundingClientRect();
+  pad.style.setProperty('--x', (x - r.left) + 'px');
+  pad.style.setProperty('--y', (y - r.top) + 'px');
+}
+function flash(zone) {
+  const el = zone === 'OK' ? pad.querySelector('.ok') : pad.querySelector('[data-z=' + zone + ']');
+  el.classList.remove('on');
+  void el.getBoundingClientRect();
+  el.classList.add('on');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('on'), 280);
+}
+
+pad.addEventListener('touchstart', noDefault, { passive: false });
+pad.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  pad.setPointerCapture(e.pointerId);
+  pad.classList.add('touch');
+  glowAt(e.clientX, e.clientY);
+  haptic();
+  const g = gesture = { x: e.clientX, y: e.clientY, acc: 0, axis: null, mode: 'pending', zone: zoneAt(e.clientX, e.clientY) };
+  g.timer = setTimeout(() => {
+    if (g.mode !== 'pending') return;
+    g.mode = 'hold';
+    flash(g.zone);
+    send('d:' + KEY[g.zone]);
+  }, HOLD_MS);
+});
+pad.addEventListener('pointermove', e => {
+  const g = gesture;
+  if (!g) return;
+  glowAt(e.clientX, e.clientY);
+  const dx = e.clientX - g.x, dy = e.clientY - g.y;
+  if (g.mode === 'pending') {
+    if (Math.hypot(dx, dy) < DEAD_PX) return;
+    clearTimeout(g.timer);
+    g.mode = 'swipe';
+    g.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
   }
-  function buzz(){ if(navigator.vibrate) navigator.vibrate(12); }
-  async function K(code){
-    buzz();
-    try{ const r=await fetch('/cgi-bin/key?k='+code); if(!r.ok)throw 0; }
-    catch(e){ flash('offline',true); }
+  if (g.mode !== 'swipe') return;
+  g.acc += g.axis === 'x' ? dx : dy;
+  g.x = e.clientX; g.y = e.clientY;
+  while (Math.abs(g.acc) >= STEP) {
+    const zone = g.axis === 'x' ? (g.acc > 0 ? 'RIGHT' : 'LEFT') : (g.acc > 0 ? 'DOWN' : 'UP');
+    send('k:' + KEY[zone]);
+    flash(zone);
+    g.acc -= Math.sign(g.acc) * STEP;
   }
-  async function sendText(){
-    const el=document.getElementById('t'); const v=el.value;
-    if(!v) return;
-    buzz();
-    try{
-      const r=await fetch('/cgi-bin/text?t='+encodeURIComponent(v));
-      if(!r.ok)throw 0; flash('sent'); el.value='';
-    }catch(e){ flash('offline',true); }
-  }
+});
+function endGesture() {
+  const g = gesture;
+  if (!g) return;
+  gesture = null;
+  clearTimeout(g.timer);
+  pad.classList.remove('touch');
+  if (g.mode === 'pending') { send('k:' + KEY[g.zone]); flash(g.zone); }
+  else if (g.mode === 'hold') send('u:' + KEY[g.zone]);
+}
+pad.addEventListener('pointerup', endGesture);
+pad.addEventListener('pointercancel', endGesture);
+
+// ---------------------------------------------------------------- keyboard
+// Live typing: every change in the field is mirrored on the TV (backspaces + new text).
+const field = $('#text');
+let mirrored = [];
+
+function openKeyboard() {
+  field.value = ''; mirrored = [];
+  document.body.classList.add('typing');
+  field.focus();
+}
+function closeKeyboard() {
+  document.body.classList.remove('typing');
+  field.blur();
+}
+$('#kb-open').addEventListener('click', openKeyboard);
+$('#kb-close').addEventListener('click', closeKeyboard);
+field.addEventListener('blur', () => setTimeout(() => {
+  if (document.activeElement !== field) document.body.classList.remove('typing');
+}, 150));
+field.addEventListener('input', () => {
+  const now = [...field.value];
+  let same = 0;
+  while (same < mirrored.length && same < now.length && mirrored[same] === now[same]) same++;
+  const removed = mirrored.length - same;
+  if (removed > 0) send('b:' + removed);
+  if (now.length > same) send('t:' + now.slice(same).join(''));
+  mirrored = now;
+});
+field.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); send('k:66'); field.value = ''; mirrored = []; }
+  else if (e.key === 'Backspace' && field.value === '') send('k:67');
+});
+
+// Keep the sheet above the on-screen keyboard.
+if (window.visualViewport) {
+  const vv = window.visualViewport;
+  const place = () => document.documentElement.style.setProperty(
+    '--kb', Math.max(0, window.innerHeight - vv.height - vv.offsetTop) + 'px');
+  vv.addEventListener('resize', place);
+  vv.addEventListener('scroll', place);
+}
+
+// ---------------------------------------------------------------- desktop keys
+const DESKTOP = { ArrowUp: 19, ArrowDown: 20, ArrowLeft: 21, ArrowRight: 22, Enter: 23,
+  Escape: 4, Backspace: 4, ' ': 85, h: 3, '+': 24, '-': 25 };
+document.addEventListener('keydown', e => {
+  if (document.activeElement === field || e.metaKey || e.ctrlKey || e.altKey) return;
+  const code = DESKTOP[e.key];
+  if (code === undefined) return;
+  e.preventDefault();
+  if (!e.repeat) send('d:' + code);
+});
+document.addEventListener('keyup', e => {
+  if (document.activeElement === field) return;
+  const code = DESKTOP[e.key];
+  if (code !== undefined) send('u:' + code);
+});
+
+connect();
 </script>
 </body>
 </html>
