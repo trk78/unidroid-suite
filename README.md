@@ -69,7 +69,7 @@ low-end projector (measured on an Allwinner H713 with 1 GB of RAM). The persiste
 | Tap the pad edge / centre | Direction / OK |
 | Swipe on the pad | One step every ~34 px |
 | Hold on the pad edge or any button | Key repeat / long-press |
-| ⚙ / Apps buttons | Android settings / app list (home screen without UniDroid Launcher) |
+| ⚙ / Apps buttons | Android settings / app list of [UniDroid Launcher](https://github.com/trk78/unidroid-launcher) (home screen without it) |
 | Keyboard button | Live typing, ⌫ and ⏎ |
 | Arrow keys, Enter, Esc, Space (desktop) | D-pad, OK, Back, Play/Pause |
 
@@ -166,7 +166,7 @@ Open ideas:
 - optional PIN for shared networks;
 - projector controls (keystone, zoom, focus) from the remote;
 - a flashable Magisk zip in GitHub Releases, so no JDK or SDK is needed;
-- UniDroid Launcher, a lightweight TV launcher that can install the remote for you (in progress).
+- install the remote from [UniDroid Launcher](https://github.com/trk78/unidroid-launcher), the companion TV home screen.
 
 ## 📄 License
 
