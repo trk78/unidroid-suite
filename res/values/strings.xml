@@ -91,13 +91,13 @@
 
     <!-- Projection panel -->
     <string name="keystone">Keystone</string>
-    <string name="corner_tl">Top left corner</string>
-    <string name="corner_tr">Top right corner</string>
-    <string name="corner_bl">Bottom left corner</string>
-    <string name="corner_br">Bottom right corner</string>
-    <string name="keystone_editing">Arrows move the corner · OK keeps it · Back cancels</string>
-    <string name="keystone_undo">Undo changes</string>
-    <string name="keystone_undo_sub">Back to the corners as they were when this panel opened</string>
+    <string name="keystone_manual">Manual keystone</string>
+    <string name="keystone_manual_sub">Full screen: move each corner of the picture with the remote</string>
+    <string name="keystone_reset">Reset keystone</string>
+    <string name="keystone_reset_sub">Straight picture, no correction</string>
+    <string name="keystone_reset_done">Keystone reset</string>
+    <string name="keystone_help">OK: next corner · Arrows: move it · Back: done</string>
+    <string name="keystone_reset_help">Hold OK to reset</string>
     <string name="source">Input</string>
     <string name="vendor_section">Manufacturer</string>
     <string name="vendor_projection">Projection mode and zoom</string>

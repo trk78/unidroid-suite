@@ -89,13 +89,13 @@
 
     <!-- Projection -->
     <string name="keystone">Trapèze</string>
-    <string name="corner_tl">Coin haut gauche</string>
-    <string name="corner_tr">Coin haut droit</string>
-    <string name="corner_bl">Coin bas gauche</string>
-    <string name="corner_br">Coin bas droit</string>
-    <string name="keystone_editing">Flèches : déplacer le coin · OK : garder · Retour : annuler</string>
-    <string name="keystone_undo">Annuler les modifications</string>
-    <string name="keystone_undo_sub">Remet les coins comme à l\'ouverture de ce panneau</string>
+    <string name="keystone_manual">Trapèze manuel</string>
+    <string name="keystone_manual_sub">Plein écran : déplace chaque coin de l\'image à la télécommande</string>
+    <string name="keystone_reset">Réinitialiser le trapèze</string>
+    <string name="keystone_reset_sub">Image droite, sans correction</string>
+    <string name="keystone_reset_done">Trapèze réinitialisé</string>
+    <string name="keystone_help">OK : coin suivant · Flèches : déplacer · Retour : terminer</string>
+    <string name="keystone_reset_help">Maintiens OK pour réinitialiser</string>
     <string name="source">Entrée</string>
     <string name="vendor_section">Constructeur</string>
     <string name="vendor_projection">Mode de projection et zoom</string>

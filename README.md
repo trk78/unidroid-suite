@@ -25,7 +25,7 @@ Free · No ads · No premium tier · No account · ~80 KB
 | 🎨 **Dynamic background** | The glow behind the screen takes the colour of the focused app |
 | 📽️ **Projector row** | Projection, HDMI input, Wi-Fi and Bluetooth one click away |
 | 🪟 **Native panels** | Wi-Fi (scan, connect, forget), Bluetooth (pair, connect, forget) and keystone open as side panels, not the vendor's screens |
-| 📐 **Keystone** | Move each corner live with the D-pad (rooted Allwinner H713 projectors) |
+| 📐 **Keystone** | Full-screen editor: OK picks a corner, arrows move it (faster while held), hold OK to reset (rooted Allwinner H713 projectors) |
 | 🖌️ **Customizable** | Background (app colour, accent, plain black), six accent colours, clock on/off, rows on/off, hidden apps |
 | 📱 **UniDroid Remote aware** | Detects [UniDroid Remote](https://github.com/trk78/unidroid-remote) and shows the address to open on your phone |
 | 🌍 **English and French** | Follows the device language |
@@ -54,7 +54,7 @@ sequenceDiagram
 2. Favorites are package names saved in the app's preferences. First run picks known streaming apps, then any app with a TV banner.
 3. The home screen is built in code, without XML layouts: [`HomeActivity.java`](src/app/unidroid/launcher/HomeActivity.java).
 4. Wi-Fi and Bluetooth panels use the public Android APIs. The app targets SDK 28 so it can still turn Wi-Fi on/off and join a network without root.
-5. Keystone writes the eight corner offsets to `persist.display.keystone_*` and pushes them to SurfaceFlinger (transaction 1050), as the vendor app does. This needs root: [`ProjectionPanel.java`](src/app/unidroid/launcher/ProjectionPanel.java).
+5. Keystone sends the four corners to SurfaceFlinger (transaction 1050) as inward offsets in fractions of the screen (0 to 0.5), as the vendor app does; SurfaceFlinger saves them in `persist.display.keystone_*`. This needs root: [`KeystoneEditor.java`](src/app/unidroid/launcher/KeystoneEditor.java).
 
 ## 🚀 Build and install
 
@@ -87,7 +87,8 @@ adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
 │   ├── Sheet.java              — Side panel: header and focusable rows (toggles, choices)
 │   ├── WifiPanel.java          — Wi-Fi: scan, connect with a password, forget
 │   ├── BluetoothPanel.java     — Bluetooth: paired devices, scan, pair, forget
-│   ├── ProjectionPanel.java    — Keystone corners, HDMI input (root)
+│   ├── ProjectionPanel.java    — Projection panel: keystone, HDMI input
+│   ├── KeystoneEditor.java     — Full-screen keystone editor (root)
 │   ├── SettingsPanel.java      — Launcher settings and the per-app menu
 │   ├── AppRepo.java            — Installed apps, favorites, banner colour
 │   ├── Prefs.java              — Look-and-feel choices

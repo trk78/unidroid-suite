@@ -100,7 +100,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         sheet = new Sheet(ui, root, scroll);
         wifiPanel = new WifiPanel(this, ui, sheet);
         bluetoothPanel = new BluetoothPanel(this, sheet);
-        projectionPanel = new ProjectionPanel(this, sheet);
+        projectionPanel = new ProjectionPanel(this, ui, sheet, root, scroll, prefs);
         settingsPanel = new SettingsPanel(this, sheet, prefs, this);
         restyle();
 
@@ -137,6 +137,10 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         sheet.close();
+        ViewGroup root = (ViewGroup) scroll.getParent();
+        for (int i = root.getChildCount() - 1; i >= 0; i--) {
+            if (root.getChildAt(i) instanceof KeystoneEditor) ((KeystoneEditor) root.getChildAt(i)).dismiss();
+        }
         if ("apps".equals(intent.getStringExtra("open"))) {
             focusFirst(appsRow);
         } else {
