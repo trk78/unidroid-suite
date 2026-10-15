@@ -10,8 +10,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,6 +34,7 @@ final class KeystoneEditor extends View {
     private static final String[] KEYS = {"lbx", "lby", "ltx", "lty", "rtx", "rty", "rbx", "rby"};
     private static final int MAX = 500;
     private static final int MAX_STEP = 8;
+    private static final int SF_KEYSTONE = 1050;
     private static final int RESET_REPEATS = 10;
     /** Corner order when pressing OK (clockwise), as the index of its x in KEYS. */
     private static final int[] ORDER = {2, 4, 6, 0};
@@ -41,10 +46,12 @@ final class KeystoneEditor extends View {
     private final int accent;
     private final int[] v = new int[KEYS.length];
     private int corner;
-    private int step = 1;
+    private int step;
     private boolean longPressed;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private volatile OutputStream shellIn;
+    private volatile OutputStream daemon;
+    private final AtomicReference<String> pending = new AtomicReference<>();
+    private final AtomicBoolean scheduled = new AtomicBoolean();
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -115,7 +122,8 @@ final class KeystoneEditor extends View {
             case KeyEvent.KEYCODE_DPAD_RIGHT:
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_DPAD_DOWN:
-                step = e.getRepeatCount() == 0 ? 1 : Math.min(MAX_STEP, step + 1);
+                // 1 per press, then faster while held (one more every 4 repeats, up to 8).
+                step = Math.min(MAX_STEP, 1 + e.getRepeatCount() / 4);
                 move(keyCode);
                 return true;
             default:
@@ -154,56 +162,100 @@ final class KeystoneEditor extends View {
             case KeyEvent.KEYCODE_DPAD_UP: v[y] += top ? -step : step; break;
             default: return;
         }
-        v[x] = Math.max(0, Math.min(MAX, v[x]));
-        v[y] = Math.max(0, Math.min(MAX, v[y]));
+        // Same limits as the vendor: 0-500, and a corner never crosses the one facing it
+        // (left and right offsets on a row, top and bottom on a side, add up to 500 at most).
+        int facingX = left ? x + 4 : x - 4;
+        int facingY = y == 3 ? 1 : y == 1 ? 3 : y == 5 ? 7 : 5;
+        v[x] = Math.max(0, Math.min(MAX - v[facingX], v[x]));
+        v[y] = Math.max(0, Math.min(MAX - v[facingY], v[y]));
         push();
         invalidate();
     }
 
-    // ------------------------------------------------------------------ root shell
+    // ------------------------------------------------------------------ root link
 
-    /** One su shell for the whole session: each arrow press is a single line, no process start. */
+    /**
+     * Starts {@link KeystoneDaemon} as root from this APK: each press is then one line on
+     * its stdin and one Binder call. Falls back to {@code service call} if it cannot start.
+     */
     private void openShell() {
+        final String apk = act.getApplicationInfo().sourceDir;
         io.execute(() -> {
             try {
-                shellIn = new ProcessBuilder("su").start().getOutputStream();
+                Process p = new ProcessBuilder("su", "-c", "CLASSPATH=" + apk
+                        + " exec app_process /system/bin " + KeystoneDaemon.class.getName())
+                        .redirectErrorStream(true).start();
+                BufferedReader out = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                if ("ready".equals(out.readLine())) {
+                    daemon = p.getOutputStream();
+                    // Keep reading so an error message can never fill the pipe and block it.
+                    new Thread(() -> {
+                        try {
+                            while (out.readLine() != null) {
+                                // Ignored.
+                            }
+                        } catch (Exception ignored) {
+                            // Daemon gone.
+                        }
+                    }, "keystone-out").start();
+                } else {
+                    p.destroy();
+                }
             } catch (Exception e) {
-                shellIn = null;
+                daemon = null;
             }
         });
     }
 
-    /** Sends the corners; runs in order on one thread so the last press always wins. */
+    /**
+     * Sends the corners. Only the latest position is kept, so holding an arrow can never
+     * queue up moves that keep playing after the key is released.
+     */
     private void push() {
-        StringBuilder cmd = new StringBuilder("service call SurfaceFlinger 1050");
-        for (int n : v) cmd.append(String.format(Locale.ROOT, " f %.3f", n / 1000f));
-        final String command = cmd.toString();
-        io.execute(() -> {
-            OutputStream in = shellIn;
-            if (in != null) {
-                try {
-                    // Output is discarded in the shell, so nothing has to read it back.
-                    in.write((command + " >/dev/null 2>&1\n").getBytes());
-                    in.flush();
-                    return;
-                } catch (Exception ignored) {
-                    shellIn = null;
-                }
+        StringBuilder sb = new StringBuilder();
+        for (int n : v) sb.append(String.format(Locale.ROOT, "%.3f ", n / 1000f));
+        pending.set(sb.toString().trim());
+        if (scheduled.compareAndSet(false, true)) io.execute(this::drain);
+    }
+
+    private void drain() {
+        scheduled.set(false);
+        String corners = pending.getAndSet(null);
+        if (corners == null) return;
+        OutputStream in = daemon;
+        if (in != null) {
+            try {
+                in.write((corners + "\n").getBytes());
+                in.flush();
+                return;
+            } catch (Exception e) {
+                daemon = null;
             }
-            Root.run(command, null);
-        });
+        }
+        // Slow path, one call at a time: wait for it before taking the next position.
+        final Object done = new Object();
+        synchronized (done) {
+            Root.run("service call SurfaceFlinger " + SF_KEYSTONE + " f " + corners.replace(" ", " f "), (ok, o) -> {
+                synchronized (done) {
+                    done.notify();
+                }
+            });
+            try {
+                done.wait(2000);
+            } catch (InterruptedException ignored) {
+                // Leaving.
+            }
+        }
     }
 
     /** Leaves the editor, keeping the corners as they are. */
     void dismiss() {
         io.execute(() -> {
-            OutputStream in = shellIn;
-            shellIn = null;
+            OutputStream in = daemon;
+            daemon = null;
             try {
-                if (in != null) {
-                    in.write("exit\n".getBytes());
-                    in.close();
-                }
+                // Closing stdin ends the daemon.
+                if (in != null) in.close();
             } catch (Exception ignored) {
                 // Already closed.
             }

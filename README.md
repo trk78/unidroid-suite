@@ -89,6 +89,7 @@ adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
 │   ├── BluetoothPanel.java     — Bluetooth: paired devices, scan, pair, forget
 │   ├── ProjectionPanel.java    — Projection panel: keystone, HDMI input
 │   ├── KeystoneEditor.java     — Full-screen keystone editor (root)
+│   ├── KeystoneDaemon.java     — Root helper run by app_process: applies only the latest corners
 │   ├── SettingsPanel.java      — Launcher settings and the per-app menu
 │   ├── AppRepo.java            — Installed apps, favorites, banner colour
 │   ├── Prefs.java              — Look-and-feel choices
