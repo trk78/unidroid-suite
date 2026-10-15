@@ -188,11 +188,13 @@ final class KeystoneEditor extends View {
                 BufferedReader out = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 if ("ready".equals(out.readLine())) {
                     daemon = p.getOutputStream();
-                    // Keep reading so an error message can never fill the pipe and block it.
+                    // SurfaceFlinger only shows a new shape when it composes a new frame: redraw
+                    // once each shape is in, or the picture stays one step behind the remote.
                     new Thread(() -> {
                         try {
-                            while (out.readLine() != null) {
-                                // Ignored.
+                            String ack;
+                            while ((ack = out.readLine()) != null) {
+                                if (ack.startsWith("ok")) refreshPicture();
                             }
                         } catch (Exception ignored) {
                             // Daemon gone.
@@ -236,6 +238,7 @@ final class KeystoneEditor extends View {
         final Object done = new Object();
         synchronized (done) {
             Root.run("service call SurfaceFlinger " + SF_KEYSTONE + " f " + corners.replace(" ", " f "), (ok, o) -> {
+                refreshPicture();
                 synchronized (done) {
                     done.notify();
                 }
@@ -246,6 +249,12 @@ final class KeystoneEditor extends View {
                 // Leaving.
             }
         }
+    }
+
+    /** Draws two fresh frames (now and a vsync later) so the applied shape reaches the screen. */
+    private void refreshPicture() {
+        postInvalidate();
+        postInvalidateDelayed(34);
     }
 
     /** Leaves the editor, keeping the corners as they are. */

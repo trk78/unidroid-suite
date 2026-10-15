@@ -103,6 +103,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         projectionPanel = new ProjectionPanel(this, ui, sheet, root, scroll, prefs);
         settingsPanel = new SettingsPanel(this, sheet, prefs, this);
         restyle();
+        if ("keystone".equals(getIntent().getStringExtra("open"))) main.post(projectionPanel::openKeystone);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -141,8 +142,12 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         for (int i = root.getChildCount() - 1; i >= 0; i--) {
             if (root.getChildAt(i) instanceof KeystoneEditor) ((KeystoneEditor) root.getChildAt(i)).dismiss();
         }
-        if ("apps".equals(intent.getStringExtra("open"))) {
+        String open = intent.getStringExtra("open");
+        if ("apps".equals(open)) {
             focusFirst(appsRow);
+        } else if ("keystone".equals(open)) {
+            // Shortcut for UniDroid Remote: am start -n app.unidroid.launcher/.HomeActivity --es open keystone
+            projectionPanel.openKeystone();
         } else {
             // HOME pressed while already home: back to the top.
             scroll.smoothScrollTo(0, 0);

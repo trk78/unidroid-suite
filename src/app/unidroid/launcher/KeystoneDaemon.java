@@ -60,7 +60,11 @@ public final class KeystoneDaemon {
                 line = latest;
                 latest = null;
             }
+            long start = System.nanoTime();
             apply(sf, line);
+            // Tells the editor the new shape is in: it redraws so SurfaceFlinger composes a frame with it.
+            System.out.println("ok " + (System.nanoTime() - start) / 1_000_000);
+            System.out.flush();
         }
     }
 

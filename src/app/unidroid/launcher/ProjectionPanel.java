@@ -50,7 +50,7 @@ final class ProjectionPanel {
         sheet.section(act.getString(R.string.keystone));
         sheet.item(R.drawable.ic_projector, act.getString(R.string.keystone_manual), act.getString(R.string.keystone_manual_sub), v -> {
             sheet.close();
-            KeystoneEditor.open(act, ui, host, home, prefs.accent(), this::noRoot);
+            openKeystone();
         });
         sheet.item(0, act.getString(R.string.keystone_reset), act.getString(R.string.keystone_reset_sub), v ->
                 Root.run("service call SurfaceFlinger 1050 f 0 f 0 f 0 f 0 f 0 f 0 f 0 f 0", (ok, out) ->
@@ -61,6 +61,10 @@ final class ProjectionPanel {
         }
         vendorRows();
         sheet.focus();
+    }
+
+    void openKeystone() {
+        KeystoneEditor.open(act, ui, host, home, prefs.accent(), this::noRoot);
     }
 
     private void noRoot() {
