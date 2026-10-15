@@ -35,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.5.1";
+    static final String VERSION = "0.5.2";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     private static final String WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -302,6 +302,8 @@ public final class Server {
         String hello = info();
         hello = hello.substring(0, hello.length() - 1) + ",\"page\":\"" + pageId + "\"}";
         sendFrame(out, 0x1, ("i:" + hello).getBytes(StandardCharsets.UTF_8));
+        String browserState = browser.last();
+        if (browserState != null) sendFrame(out, 0x1, browserState.getBytes(StandardCharsets.UTF_8));
 
         HeldKey held = new HeldKey(injector);
         Devices.Device[] device = new Devices.Device[1];

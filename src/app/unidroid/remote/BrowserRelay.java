@@ -23,9 +23,27 @@ final class BrowserRelay {
     private final Broadcast broadcast;
     private Socket socket;
     private OutputStream out;
+    private volatile String last;
 
     BrowserRelay(Broadcast broadcast) {
         this.broadcast = broadcast;
+        // The browser is usually opened from the projector, not the phone: notice it
+        // (loopback connect, refused at once while closed) so the phones follow along.
+        Thread watch = new Thread(() -> {
+            while (true) {
+                synchronized (this) {
+                    if (out == null) connect(1);
+                }
+                sleep(2000);
+            }
+        }, "udr-browser-watch");
+        watch.setDaemon(true);
+        watch.start();
+    }
+
+    /** The browser's latest state line ("w:" + JSON) for a phone that just connected, or null. */
+    String last() {
+        return last;
     }
 
     /** Sends one command line; opens (or brings up) the browser first when needed. */
@@ -60,7 +78,7 @@ final class BrowserRelay {
                 t.start();
                 return true;
             } catch (Exception e) {
-                sleep(200);
+                if (tries > 1) sleep(200);
             }
         }
         return false;
@@ -70,13 +88,17 @@ final class BrowserRelay {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
             String line;
-            while ((line = in.readLine()) != null) broadcast.send("w:" + line);
+            while ((line = in.readLine()) != null) {
+                last = "w:" + line;
+                broadcast.send(last);
+            }
         } catch (Exception ignored) {
             // Browser closed.
         }
         synchronized (this) {
             if (socket == s) close();
         }
+        last = null;
         broadcast.send("w:{\"closed\":true}");
     }
 

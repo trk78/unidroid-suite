@@ -107,7 +107,8 @@ body[data-conn=connecting] .dot { animation: breathe 1.2s ease-in-out infinite; 
 .round { width: 68px; height: 68px; border-radius: 50%; justify-self: center; }
 .small { width: 40px; height: 40px; border-radius: 50%; }
 .small .i { width: 21px; height: 21px; }
-.power { color: var(--red); }
+.power { width: 52px; height: 52px; border-radius: 50%; color: var(--red); }
+.power .i { width: 26px; height: 26px; }
 
 /* ---------- touch pad */
 .pad-wrap { flex: 1; display: grid; place-items: center; }
@@ -149,7 +150,9 @@ body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .2
 .controls { display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 18px; }
 .pill {
   grid-column: span 2; display: flex; align-items: center; justify-content: space-between;
-  height: 68px; border-radius: 34px; padding: 0 6px; margin-right: 14px;
+  height: 68px; border-radius: 34px; padding: 0 6px;
+  /* Columns are half of this area; round buttons (68px) sit centred in them. */
+  margin: 0 calc(25% - 34px);
 }
 .pill .btn { width: 56px; height: 56px; border-radius: 50%; background: transparent; }
 .pill .btn.pressed { background: var(--glass-hi); }
@@ -286,9 +289,7 @@ body.tabs-open .tabs { display: flex; }
 <div class="app">
   <header>
     <div class="status glass"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
-    <button class="btn small glass" id="web-open" aria-label="Web"><svg class="i"><use href="#i-globe"/></svg></button>
-    <button class="btn small glass" data-action="settings" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
-    <button class="btn small glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
+    <button class="btn glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
 
   <div class="install glass" id="install">
@@ -745,12 +746,24 @@ const web = (() => {
   function state(json) {
     try {
       const o = JSON.parse(json);
-      if (o.closed) { document.body.classList.add('web-closed'); return; }
+      if (o.closed) {
+        document.body.classList.add('web-closed');
+        if (browserOpen) { browserOpen = false; close(); }
+        return;
+      }
+      if (!browserOpen) { browserOpen = true; if (!document.body.classList.contains('web')) show(); }
       document.body.classList.remove('web-closed');
       st = o; paint();
     } catch (e) { /* ignore */ }
   }
 
+  // The browser is opened from the projector (Browser tile); its controls then appear here.
+  let browserOpen = false;
+  function show() {
+    document.body.classList.add('web');
+    try { sessionStorage.setItem('udr-mode', 'web'); } catch (e) { /* ignore */ }
+    paint();
+  }
   function open() {
     document.body.classList.add('web');
     try { sessionStorage.setItem('udr-mode', 'web'); } catch (e) { /* ignore */ }
@@ -763,7 +776,6 @@ const web = (() => {
   const openTabs = () => { paint(); document.body.classList.add('tabs-open'); };
   const closeTabs = () => document.body.classList.remove('tabs-open');
 
-  $('#web-open').addEventListener('click', open);
   $('#web-remote').addEventListener('click', close);
   const go = () => {
     const v = $('#addr').value.trim();
