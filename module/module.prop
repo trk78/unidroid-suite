@@ -1,6 +1,0 @@
-id=unidroid-remote
-name=UniDroid Remote
-version=0.3.0
-versionCode=3
-author=Timéo Jeannin
-description=Self-hosted web remote for Android. Control the device from any browser on your LAN.
