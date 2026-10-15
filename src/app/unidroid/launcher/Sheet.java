@@ -303,7 +303,7 @@ final class Sheet {
         panel = new LinearLayout(ui.ctx);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setBackgroundColor(Ui.SHEET);
-        panel.setPadding(ui.px(52), ui.px(56), ui.px(52), 0);
+        panel.setPadding(ui.px(52), ui.px(56), ui.px(52), ui.px(HomeActivity.SAFE_EDGE));
         overlay.addView(panel, new FrameLayout.LayoutParams(ui.px(780), -1, Gravity.END));
 
         headIcon = new ImageView(ui.ctx);
@@ -320,8 +320,11 @@ final class Sheet {
 
         scroll = new ScrollView(ui.ctx);
         scroll.setVerticalScrollBarEnabled(false);
-        scroll.setClipToPadding(false);
-        scroll.setPadding(0, ui.px(24), 0, ui.px(56));
+        // Rows scroll under a soft edge and stop short of the screen bottom, where the
+        // keystone crops the picture; they never slide under the header.
+        scroll.setPadding(0, ui.px(12), 0, 0);
+        scroll.setVerticalFadingEdgeEnabled(true);
+        scroll.setFadingEdgeLength(ui.px(48));
         list = new LinearLayout(ui.ctx);
         list.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="row_favorites">Favoris</string>
-    <string name="row_projector">Projecteur</string>
+    <string name="row_projector">UniDroid</string>
     <string name="row_apps">Toutes les applis</string>
 
     <string name="kicker_favorite">Favori</string>
@@ -30,7 +30,7 @@
 
     <string name="remote_scan">Scanne avec ton téléphone</string>
     <string name="remote_scan_sub">Scanne le code avec l\'appareil photo du téléphone, puis ajoute la télécommande à son écran d\'accueil</string>
-    <string name="remote_tile_sub">Téléphones connectés, QR code, Wi-Fi et Bluetooth</string>
+    <string name="remote_tile_sub">Téléphones connectés et QR code</string>
     <string name="remote_unavailable">Télécommande indisponible</string>
     <string name="remote_unavailable_sub">Le serveur de la télécommande tourne en root (Magisk) : autorise-le quand Magisk le demande</string>
     <string name="remote_connected">%1$s · connecté</string>
@@ -42,6 +42,7 @@
     <string name="remote_add">Ajouter un téléphone</string>
     <string name="remote_add_help">Scanne avec l\'appareil photo (ou ouvre %1$s), puis Partager › Sur l\'écran d\'accueil.</string>
     <string name="remote_forget">Oublier cet appareil</string>
+    <string name="remote_forget_short">Oublier</string>
     <string name="remote_forget_sub">Il reviendra s\'il rouvre la télécommande</string>
     <string name="remote_server">Serveur</string>
     <string name="remote_restart">Redémarrer le serveur de la télécommande</string>

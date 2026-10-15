@@ -35,13 +35,14 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.5.0";
+    static final String VERSION = "0.5.1";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     private static final String WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_FRAME = 64 * 1024;
 
     private final String apk;
+    private final String pageId;
     private final Map<String, byte[]> files;
     private final Injector injector;
     private final Actions actions;
@@ -54,6 +55,8 @@ public final class Server {
         this.apk = apk;
         this.files = files;
         this.injector = injector;
+        // Lets open pages notice that the app was updated and reload themselves.
+        this.pageId = Integer.toHexString(java.util.Arrays.hashCode(files.get("index.html")));
         this.actions = new Actions(injector);
     }
 
@@ -296,7 +299,9 @@ public final class Server {
         out.write(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
                 + "Sec-WebSocket-Accept: " + accept + "\r\n\r\n").getBytes(StandardCharsets.US_ASCII));
         out.flush();
-        sendFrame(out, 0x1, ("i:" + info()).getBytes(StandardCharsets.UTF_8));
+        String hello = info();
+        hello = hello.substring(0, hello.length() - 1) + ",\"page\":\"" + pageId + "\"}";
+        sendFrame(out, 0x1, ("i:" + hello).getBytes(StandardCharsets.UTF_8));
 
         HeldKey held = new HeldKey(injector);
         Devices.Device[] device = new Devices.Device[1];

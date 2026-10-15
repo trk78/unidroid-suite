@@ -431,6 +431,9 @@ function connect() {
     } else if (e.data.startsWith('i:')) {
       try {
         const info = JSON.parse(e.data.slice(2));
+        // A new version of the app was installed: load its page (an open home-screen app keeps the old one).
+        if (info.page && pageId && info.page !== pageId) { location.reload(); return; }
+        pageId = info.page;
         $('#dev').textContent = info.name || 'Android';
         document.title = (info.name || 'Android') + ' · Remote';
       } catch (err) { /* ignore */ }
@@ -452,6 +455,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // WebSocket first; plain HTTP as a fallback (no hold/repeat there).
+let pageId = null;
 function send(msg) {
   if (ws && ws.readyState === 1) { ws.send(msg); return; }
   const type = msg[0], arg = msg.slice(2);
@@ -485,6 +489,15 @@ document.querySelectorAll('[data-key]').forEach(btn => {
   btn.addEventListener('touchstart', noDefault, { passive: false });
   btn.addEventListener('pointerdown', e => {
     e.preventDefault();
+    // The keyboard sheet's Delete and Enter type into the page while the browser is open.
+    if (inWeb() && (code === '67' || code === '66')) {
+      haptic();
+      if (code === '66') { pressEnter(); field.value = ''; mirrored = []; return; }
+      const chars = [...field.value];
+      if (chars.length) { chars.pop(); field.value = chars.join(''); mirrored = chars; }
+      deleteChars(1);
+      return;
+    }
     btn.setPointerCapture(e.pointerId);
     held = true;
     btn.classList.add('pressed');
@@ -595,8 +608,13 @@ pad.addEventListener('pointercancel', endGesture);
 
 // ---------------------------------------------------------------- keyboard
 // Live typing: every change in the field is mirrored on the TV (backspaces + new text).
+// With the browser open, text goes straight into the page instead of as key strokes.
 const field = $('#text');
 let mirrored = [];
+function inWeb() { return document.body.classList.contains('web'); }
+const typeText = t => send(inWeb() ? 'w:type ' + t : 't:' + t);
+const deleteChars = n => send(inWeb() ? 'w:del ' + n : 'b:' + n);
+const pressEnter = () => send(inWeb() ? 'w:enter' : 'k:66');
 
 function openKeyboard() {
   field.value = ''; mirrored = [];
@@ -617,13 +635,13 @@ field.addEventListener('input', () => {
   let same = 0;
   while (same < mirrored.length && same < now.length && mirrored[same] === now[same]) same++;
   const removed = mirrored.length - same;
-  if (removed > 0) send('b:' + removed);
-  if (now.length > same) send('t:' + now.slice(same).join(''));
+  if (removed > 0) deleteChars(removed);
+  if (now.length > same) typeText(now.slice(same).join(''));
   mirrored = now;
 });
 field.addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); send('k:66'); field.value = ''; mirrored = []; }
-  else if (e.key === 'Backspace' && field.value === '') send('k:67');
+  if (e.key === 'Enter') { e.preventDefault(); pressEnter(); field.value = ''; mirrored = []; }
+  else if (e.key === 'Backspace' && field.value === '') deleteChars(1);
 });
 
 // Keep the sheet above the on-screen keyboard.
@@ -638,15 +656,17 @@ if (window.visualViewport) {
 // ---------------------------------------------------------------- desktop keys
 const DESKTOP = { ArrowUp: 19, ArrowDown: 20, ArrowLeft: 21, ArrowRight: 22, Enter: 23,
   Escape: 4, Backspace: 4, ' ': 85, h: 3, '+': 24, '-': 25 };
+// Arrow keys and Enter on a computer keyboard drive the TV, except while typing in a field.
+const typingIn = e => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 document.addEventListener('keydown', e => {
-  if (document.activeElement === field || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (typingIn(e) || e.metaKey || e.ctrlKey || e.altKey) return;
   const code = DESKTOP[e.key];
   if (code === undefined) return;
   e.preventDefault();
   if (!e.repeat) send('d:' + code);
 });
 document.addEventListener('keyup', e => {
-  if (document.activeElement === field) return;
+  if (typingIn(e)) return;
   const code = DESKTOP[e.key];
   if (code !== undefined) send('u:' + code);
 });
@@ -745,10 +765,14 @@ const web = (() => {
 
   $('#web-open').addEventListener('click', open);
   $('#web-remote').addEventListener('click', close);
-  $('#addr-form').addEventListener('submit', e => {
-    e.preventDefault();
+  const go = () => {
     const v = $('#addr').value.trim();
     if (v) { cmd('open ' + v); $('#addr').blur(); }
+  };
+  $('#addr-form').addEventListener('submit', e => { e.preventDefault(); go(); });
+  // iOS does not always submit a form without a submit button: handle Go directly.
+  $('#addr').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); go(); }
   });
   $('#addr').addEventListener('focus', () => $('#addr').select());
   $('#w-reload').addEventListener('click', () => cmd(st.progress < 100 ? 'stop' : 'reload'));

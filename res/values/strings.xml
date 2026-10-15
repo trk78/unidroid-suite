@@ -3,7 +3,7 @@
     <string name="app_name">UniDroid</string>
 
     <string name="row_favorites">Favorites</string>
-    <string name="row_projector">Projector</string>
+    <string name="row_projector">UniDroid</string>
     <string name="row_apps">All apps</string>
 
     <string name="kicker_favorite">Favorite</string>
@@ -32,7 +32,7 @@
 
     <string name="remote_scan">Scan with your phone</string>
     <string name="remote_scan_sub">Scan the code with your phone\'s camera, then add the remote to its home screen</string>
-    <string name="remote_tile_sub">Phones using the remote, QR code, Wi-Fi and Bluetooth</string>
+    <string name="remote_tile_sub">Connected phones and QR code</string>
     <string name="remote_unavailable">Remote unavailable</string>
     <string name="remote_unavailable_sub">The remote server runs as root (Magisk): allow it when Magisk asks</string>
     <string name="remote_connected">%1$s · connected</string>
@@ -44,6 +44,7 @@
     <string name="remote_add">Add a phone</string>
     <string name="remote_add_help">Scan with the camera (or open %1$s), then Share › Add to Home Screen.</string>
     <string name="remote_forget">Forget this device</string>
+    <string name="remote_forget_short">Forget</string>
     <string name="remote_forget_sub">It comes back if it opens the remote again</string>
     <string name="remote_server">Server</string>
     <string name="remote_restart">Restart the remote server</string>

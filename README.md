@@ -31,7 +31,7 @@ remote server and shows a QR code until a phone has added the remote to its home
 | 🎨 **Customizable** | Background (app colour, accent, plain black), six accent colours, clock on/off, rows on/off, hidden apps |
 | 🪟 **Native panels** | Wi-Fi (scan, connect, forget), Bluetooth (pair, connect, forget), projection and remote open as side panels |
 | 📐 **Keystone** | Full-screen editor: OK picks a corner, arrows move it (faster while held), hold OK to reset (rooted Allwinner H713 projectors) |
-| 🌐 **Remote-driven browser** | The projector shows only the page and a pointer; address bar, tabs, bookmarks, back/forward, zoom and desktop/mobile mode are on the phone |
+| 🌐 **Remote-driven browser** | The projector shows only the page and a pointer; address bar, tabs, bookmarks, back/forward, zoom and desktop/mobile mode are on the phone; Back on the TV remote leaves it |
 | 🌍 **English and French** | Follows the device language |
 
 **Phone remote**
@@ -39,7 +39,7 @@ remote server and shows a QR code until a phone has added the remote to its home
 | | |
 |---|---|
 | 🖱️ **Track pad for the web** | In the Web tab: slide to move the pointer, tap to click, two fingers or the side strip to scroll, the phone keyboard types into the page |
-| 📷 **QR code on the TV** | Scan it with the phone camera; once the remote is on the phone's home screen, the tile shows the phone, Wi-Fi and Bluetooth instead |
+| 📷 **QR code on the TV** | Scan it with the phone camera; once the remote is on the phone's home screen, the tile shows the phone and when it was last seen instead |
 | ⚡ **Instant** | 6–8 ms per key press over Wi-Fi: one persistent process injects keys, nothing is spawned per press |
 | 🎯 **Apple TV-style touch pad** | Tap an edge for a direction, swipe to scroll fast, hold to repeat |
 | ⌨️ **Live keyboard** | What you type on the phone appears on the TV as you type, accents included (also in web pages) |
@@ -68,7 +68,7 @@ sequenceDiagram
     P->>S: WebSocket /ws, "h:" hello (id, installed)
     L->>S: GET /info (every 5 s)
     S-->>L: iPhone, installed, connected
-    L->>U: Tile shows the phone, Wi-Fi and Bluetooth
+    L->>U: Tile shows the phone and its status
     U->>P: Presses Right on the pad
     P->>S: d:22 then u:22
     S->>S: injectInputEvent
@@ -138,7 +138,7 @@ The remote server listens on port 8080. Everything the page does is available to
 | `t:<text>` | Type text |
 | `b:<n>` | `n` backspaces |
 | `a:<action>` | Same actions as `/action` (also `browser`) |
-| `w:<command>` | Browser: `show`, `open <url or search>`, `new [url]`, `tab <id>`, `close <id>`, `back`, `forward`, `reload`, `stop`, `move <dx> <dy>`, `click`, `scroll <dx> <dy>`, `zoom in\|out`, `mode desktop\|mobile`, `exit`, `state`. The browser answers `w:<json>` with its tabs and state |
+| `w:<command>` | Browser: `show`, `open <url or search>`, `new [url]`, `tab <id>`, `close <id>`, `back`, `forward`, `reload`, `stop`, `move <dx> <dy>`, `click`, `scroll <dx> <dy>`, `zoom in\|out`, `mode desktop\|mobile`, `type <text>`, `del <n>`, `enter` (typed straight into the page's focused field), `exit`, `state`. The browser answers `w:<json>` with its tabs and state |
 | `p` | Ping, answered with `p` (the page shows the round trip) |
 
 `<key>` is an Android keycode number or name (`22`, `DPAD_RIGHT`, `KEYCODE_DPAD_RIGHT`).
@@ -156,12 +156,12 @@ The home screen also opens screens on request:
 │   │   ├── Sheet.java           — Side panel: header and focusable rows
 │   │   ├── WifiPanel.java       — Wi-Fi: scan, connect with a password, forget
 │   │   ├── BluetoothPanel.java  — Bluetooth: paired devices, scan, pair, forget
-│   │   ├── ProjectionPanel.java — Keystone, HDMI input
+│   │   ├── ProjectionPanel.java — Keystone, HDMI input (straight to HDMI1)
 │   │   ├── KeystoneEditor.java  — Full-screen keystone editor (root)
 │   │   ├── KeystoneDaemon.java  — Root helper: applies only the latest corners
 │   │   ├── BrowserActivity.java — Full-screen browser: tabs, pointer, mouse clicks and wheel
 │   │   ├── BrowserControl.java  — Its control socket (127.0.0.1:8090)
-│   │   ├── RemotePanel.java     — Phones, QR code, Wi-Fi, Bluetooth, server
+│   │   ├── RemotePanel.java     — Phones (forget), QR code, server
 │   │   ├── RemoteLink.java      — Starts the remote server and reads its state
 │   │   ├── QrCode.java / QrView.java — QR code encoder and view
 │   │   ├── SettingsPanel.java   — Launcher settings and the per-app menu

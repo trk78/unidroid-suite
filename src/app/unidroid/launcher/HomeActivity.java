@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -15,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.view.FocusFinder;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -42,6 +44,11 @@ import java.util.Set;
  * projection and settings open as side panels ({@link Sheet}) over this screen.
  */
 public final class HomeActivity extends Activity implements SettingsPanel.Host {
+    /** Margin kept free of text at the screen edges, in design units (5 % of 1080). */
+    static final int SAFE_EDGE = 54;
+    /** Where the hero text rests once the home screen has scrolled down, in design units. */
+    private static final int HERO_EDGE = 84;
+
     private Ui ui;
     private Prefs prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -51,14 +58,15 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     private GradientDrawable aurora;
     private int tint = 0xFF3D6FFF;
     private ValueAnimator tintAnimator;
-    private View timeBlock;
+    private View timeBlock, hero;
     private TextView clock, date, kicker, title, subtitle;
     private ScrollView scroll;
     private LinearLayout favoritesRow, projectorRow, appsRow;
     private View projectorSection, appsSection;
     private RemoteLink.State remoteState;
+    private View remoteTileView;
+    private boolean remoteTileQr;
     private QrView remoteQr;
-    private ImageView remoteIcon;
     private TextView remoteLine1, remoteLine2;
 
     private Sheet sheet;
@@ -109,7 +117,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         bluetoothPanel = new BluetoothPanel(this, sheet);
         projectionPanel = new ProjectionPanel(this, ui, sheet, root, scroll, prefs);
         settingsPanel = new SettingsPanel(this, sheet, prefs, this);
-        remotePanel = new RemotePanel(this, ui, sheet, wifiPanel, bluetoothPanel, () -> {
+        remotePanel = new RemotePanel(this, ui, sheet, () -> {
             main.removeCallbacks(remotePoll);
             remotePoll.run();
         });
@@ -254,7 +262,31 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         root.addView(scrim(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {Ui.withAlpha(Ui.INK, 235), Ui.withAlpha(Ui.INK, 90), 0}));
         root.addView(scrim(GradientDrawable.Orientation.BOTTOM_TOP, new int[] {Ui.withAlpha(Ui.INK, 240), Ui.withAlpha(Ui.INK, 50), 0}));
 
-        scroll = new ScrollView(this);
+        scroll = new ScrollView(this) {
+            /**
+             * Two resting positions instead of "just enough to show the focused row": the
+             * top, or the hero text just below the safe edge. Text is never left half off screen,
+             * where the projector's keystone would crop it.
+             */
+            @Override
+            protected int computeScrollDeltaToGetChildRectOnScreen(Rect r) {
+                int h = getHeight(), safe = px(SAFE_EDGE);
+                int max = Math.max(0, getChildAt(0).getHeight() - h);
+                int heroText = hero.getTop() + hero.getPaddingTop() - px(HERO_EDGE);
+                for (int target : new int[] {0, Math.min(max, heroText)}) {
+                    if (r.top - target >= safe && r.bottom - target <= h - safe) return target - getScrollY();
+                }
+                return super.computeScrollDeltaToGetChildRectOnScreen(r);
+            }
+
+            /** Down on the last row would scroll past the resting position: nothing there, stay. */
+            @Override
+            public boolean arrowScroll(int direction) {
+                View focused = findFocus();
+                if (FocusFinder.getInstance().findNextFocus(this, focused, direction) == null) return false;
+                return super.arrowScroll(direction);
+            }
+        };
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setFocusable(false);
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
@@ -268,8 +300,13 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         scroll.addView(column, new ScrollView.LayoutParams(-1, -2));
         root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
-        column.addView(buildTopBar());
-        column.addView(buildHero());
+        View topBar = buildTopBar();
+        column.addView(topBar);
+        // The clock fades out as the rows scroll up, rather than sit half cut at the top edge.
+        scroll.setOnScrollChangeListener((v, x, y, oldX, oldY) ->
+                topBar.setAlpha(Math.max(0f, 1f - y / (float) px(110))));
+        hero = buildHero();
+        column.addView(hero);
         favoritesRow = addRow(column, R.string.row_favorites);
         projectorRow = addRow(column, R.string.row_projector);
         projectorSection = (View) projectorRow.getParent().getParent();
@@ -300,8 +337,6 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         timeBlock = time;
         bar.addView(time, new LinearLayout.LayoutParams(0, -2, 1));
 
-        bar.addView(statusButton(R.drawable.ic_wifi, R.string.wifi, R.string.wifi_sub, v -> wifiPanel.open()));
-        bar.addView(statusButton(R.drawable.ic_bluetooth, R.string.bluetooth, R.string.bluetooth_sub, v -> bluetoothPanel.open()));
         bar.addView(statusButton(R.drawable.ic_settings, R.string.settings_launcher, R.string.settings_launcher_sub, v -> settingsPanel.open()));
         return bar;
     }
@@ -343,7 +378,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         hero.addView(kicker);
         hero.addView(title);
         hero.addView(subtitle);
-        hero.setLayoutParams(new LinearLayout.LayoutParams(px(1500), px(270)));
+        hero.setLayoutParams(new LinearLayout.LayoutParams(px(1500), px(240)));
         return hero;
     }
 
@@ -479,11 +514,28 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     }
 
     /**
-     * Remote tile. Until a phone has added the remote to its home screen it shows a QR
-     * code to open it; then it becomes a button with the phone's status, Wi-Fi and
-     * Bluetooth, opening the remote panel.
+     * Remote tile. Until a phone has added the remote to its home screen it is a wide
+     * tile with a QR code to open it; then it becomes a tile like the others, with the
+     * phone's status, opening the remote panel. Swapped in place when that changes.
      */
     private View remoteTile() {
+        remoteTileQr = remoteShowsQr();
+        remoteTileView = remoteTileQr ? remoteQrTile() : remoteButtonTile();
+        renderRemoteTile();
+        return remoteTileView;
+    }
+
+    private View remoteButtonTile() {
+        View t = tile(R.drawable.ic_remote, getString(R.string.remote), "", getString(R.string.remote_tile_sub),
+                0xFF0A84FF, v -> remotePanel.open(), 220);
+        remoteLine1 = t.findViewWithTag("value");
+        remoteLine1.setEllipsize(TextUtils.TruncateAt.END);
+        remoteQr = null;
+        remoteLine2 = null;
+        return t;
+    }
+
+    private View remoteQrTile() {
         LinearLayout t = new LinearLayout(this);
         t.setOrientation(LinearLayout.HORIZONTAL);
         t.setGravity(Gravity.CENTER_VERTICAL);
@@ -491,16 +543,10 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         GradientDrawable bg = ui.glass(px(22));
         t.setBackground(bg);
 
-        FrameLayout slot = new FrameLayout(this);
         remoteQr = new QrView(this);
-        slot.addView(remoteQr, new FrameLayout.LayoutParams(-1, -1));
-        remoteIcon = new ImageView(this);
-        remoteIcon.setImageResource(R.drawable.ic_remote);
-        remoteIcon.setColorFilter(Ui.FG);
-        slot.addView(remoteIcon, new FrameLayout.LayoutParams(px(46), px(46), Gravity.CENTER));
-        LinearLayout.LayoutParams slotLp = new LinearLayout.LayoutParams(px(104), px(104));
-        slotLp.rightMargin = px(20);
-        t.addView(slot, slotLp);
+        LinearLayout.LayoutParams qrLp = new LinearLayout.LayoutParams(px(104), px(104));
+        qrLp.rightMargin = px(20);
+        t.addView(remoteQr, qrLp);
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
@@ -521,17 +567,16 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         texts.addView(remoteLine2, l2);
         t.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
 
+        final TextView line1 = remoteLine1, line2 = remoteLine2;
         t.setLayoutParams(ui.card(480, 132, 30));
         makeFocusable(t, 1.1f, getString(R.string.kicker_system), getString(R.string.remote), "", 0xFF0A84FF, focused -> {
             bg.setColor(focused ? Ui.FG : Ui.GLASS);
             name.setTextColor(focused ? Ui.INK : Ui.FG);
-            remoteLine1.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
-            remoteLine2.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
-            remoteIcon.setColorFilter(focused ? Ui.INK : Ui.FG);
+            line1.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
+            line2.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
             if (focused) subtitle.setText(remoteSubtitle());
         });
         t.setOnClickListener(v -> remotePanel.open());
-        renderRemoteTile();
         return t;
     }
 
@@ -540,21 +585,27 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     }
 
     private void renderRemoteTile() {
-        if (remoteQr == null) return;
+        if (remoteTileView == null) return;
+        if (remoteShowsQr() != remoteTileQr) {
+            ViewGroup row = (ViewGroup) remoteTileView.getParent();
+            if (row == null) return;
+            boolean hadFocus = remoteTileView.hasFocus();
+            int at = row.indexOfChild(remoteTileView);
+            row.removeViewAt(at);
+            View swapped = remoteTile();
+            row.addView(swapped, at);
+            if (hadFocus) swapped.requestFocus();
+            return;
+        }
         RemoteLink.State s = remoteState;
-        boolean qr = remoteShowsQr();
-        remoteQr.setVisibility(qr ? View.VISIBLE : View.GONE);
-        if (qr) remoteQr.setText(s.url);
-        remoteIcon.setVisibility(qr ? View.GONE : View.VISIBLE);
-        if (s == null) {
-            remoteLine1.setText(R.string.loading);
-            remoteLine2.setText("");
-        } else if (!s.running) {
-            remoteLine1.setText(R.string.remote_unavailable);
-            remoteLine2.setText(R.string.root_needed);
-        } else if (qr) {
+        if (remoteTileQr) {
+            remoteQr.setText(s.url);
             remoteLine1.setText(R.string.remote_scan);
             remoteLine2.setText(s.url.substring(7));
+        } else if (s == null) {
+            remoteLine1.setText(R.string.loading);
+        } else if (!s.running) {
+            remoteLine1.setText(R.string.remote_unavailable);
         } else {
             RemoteLink.Device d = null;
             for (RemoteLink.Device x : s.devices) {
@@ -565,8 +616,8 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
             }
             remoteLine1.setText(d.connected ? getString(R.string.remote_connected, d.name)
                     : getString(R.string.remote_seen, d.name, android.text.format.DateUtils.getRelativeTimeSpanString(
-                            d.seen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS)));
-            remoteLine2.setText(WifiPanel.summary(this) + " · " + BluetoothPanel.summary(this));
+                            d.seen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS,
+                            android.text.format.DateUtils.FORMAT_ABBREV_RELATIVE)));
         }
         View focus = getCurrentFocus();
         if (focus != null && isInside(focus, remoteLine1)) {

@@ -24,6 +24,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 
 import org.json.JSONArray;
@@ -40,7 +41,11 @@ import java.util.List;
  *
  * Commands (one per line): open &lt;url or search&gt; · new [url] · tab &lt;id&gt; · close &lt;id&gt; ·
  * back · forward · reload · stop · move &lt;dx&gt; &lt;dy&gt; · click · scroll &lt;dx&gt; &lt;dy&gt; ·
- * zoom in|out|reset · mode desktop|mobile · exit · state
+ * zoom in|out|reset · mode desktop|mobile · type &lt;text&gt; · del &lt;n&gt; · enter · exit · state
+ *
+ * Typing goes straight into the page (no injected key strokes): injected keys land in
+ * whatever window has focus and pass through the projector's keyboard, which dropped
+ * or mangled them.
  */
 public final class BrowserActivity extends Activity implements BrowserControl.Commands {
     private static final int MAX_TABS = 6;
@@ -60,6 +65,7 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     }
 
     private final List<Tab> tabs = new ArrayList<>();
+    private final android.view.KeyCharacterMap keyMap = android.view.KeyCharacterMap.load(android.view.KeyCharacterMap.VIRTUAL_KEYBOARD);
     private Tab current;
     private int nextId = 1;
     private FrameLayout pages;
@@ -77,6 +83,8 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        // Typing happens on the phone: the projector's keyboard would only cover the page and grab the keys.
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         prefs = getSharedPreferences("browser", MODE_PRIVATE);
         desktop = prefs.getBoolean("desktop", true);
 
@@ -135,27 +143,45 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
         super.onDestroy();
     }
 
-    /** The TV remote still works: Back goes back in the page, then leaves. */
+    /**
+     * Back on the TV remote leaves the browser (after a full-screen video). Page history
+     * is on the phone's back button. Handled before the page so nothing can swallow it.
+     */
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.KEYCODE_BACK || e.getKeyCode() == KeyEvent.KEYCODE_ESCAPE) {
+            if (e.getAction() == KeyEvent.ACTION_UP && !e.isCanceled()) leave();
+            return true;
+        }
+        return super.dispatchKeyEvent(e);
+    }
+
     @Override
     public void onBackPressed() {
+        leave();
+    }
+
+    private void leave() {
         if (fullscreenView != null) {
             exitFullscreen();
-        } else if (current != null && current.view.canGoBack()) {
-            current.view.goBack();
-        } else {
-            super.onBackPressed();
+            return;
         }
+        finish();
+        // Back to the launcher, not to whatever app was open before the browser.
+        startActivity(new Intent(this, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        overridePendingTransition(0, 0);
     }
 
     // ------------------------------------------------------------------ commands
 
     @Override
     public void command(String line) {
-        String cmd = line, arg = "";
+        String cmd = line, raw = "", arg = "";
         int sp = line.indexOf(' ');
         if (sp > 0) {
             cmd = line.substring(0, sp);
-            arg = line.substring(sp + 1).trim();
+            raw = line.substring(sp + 1);
+            arg = raw.trim();
         }
         switch (cmd) {
             case "open": open(arg); break;
@@ -171,7 +197,10 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
             case "scroll": scroll(arg); break;
             case "zoom": zoom(arg); break;
             case "mode": setDesktop("desktop".equals(arg)); break;
-            case "exit": finish(); return;
+            case "type": type(raw); return;
+            case "del": delete(Math.max(1, Math.min(200, parseInt(arg)))); return;
+            case "enter": key(KeyEvent.KEYCODE_ENTER); return;
+            case "exit": exitFullscreen(); leave(); return;
             default: break; // "state" and unknown: just publish
         }
         publish();
@@ -196,6 +225,39 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
         }
     }
 
+    /**
+     * Inserts text in the focused field of the page (or of a same-origin frame) like a
+     * paste: fires input events, takes accents and emoji. Pages without an editable focus
+     * get the characters as key strokes instead (shortcuts, games).
+     */
+    private void type(String text) {
+        if (text.isEmpty()) return;
+        current.view.evaluateJavascript(EDIT_JS + "edit('insertText'," + JSONObject.quote(text) + ",1)", ok -> {
+            if (!"true".equals(ok)) {
+                KeyEvent[] events = keyMap.getEvents(text.toCharArray());
+                if (events != null) for (KeyEvent e : events) current.view.dispatchKeyEvent(e);
+            }
+        });
+    }
+
+    private void delete(int n) {
+        current.view.evaluateJavascript(EDIT_JS + "edit('delete',null," + n + ")", ok -> {
+            if (!"true".equals(ok)) for (int i = 0; i < n; i++) key(KeyEvent.KEYCODE_DEL);
+        });
+    }
+
+    /** A key stroke delivered to the page itself, as from a keyboard plugged into the projector. */
+    private void key(int code) {
+        long t = SystemClock.uptimeMillis();
+        current.view.dispatchKeyEvent(new KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0));
+        current.view.dispatchKeyEvent(new KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0));
+    }
+
+    private static final String EDIT_JS = "function edit(c,v,n){var d=document;"
+            + "while(d.activeElement&&/^i?frame$/i.test(d.activeElement.tagName)){try{d=d.activeElement.contentDocument}catch(x){break}}"
+            + "var e=d.activeElement;if(!e||!(e.isContentEditable||/^(input|textarea)$/i.test(e.tagName)))return false;"
+            + "var r=true;for(var i=0;i<n;i++)r=d.execCommand(c,false,v)&&r;return r}";
+
     private void move(String arg) {
         String[] p = arg.split(" ");
         if (p.length < 2) return;
@@ -206,6 +268,7 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     /** A real mouse click at the pointer (no tap-to-zoom, hover states work). */
     private void click() {
         WebView v = current.view;
+        if (pointer.x < 0) pointer.moveBy(0, 0); // never moved yet: click in the middle, not off screen
         float x = pointer.x, y = pointer.y;
         long t = SystemClock.uptimeMillis();
         if (Build.VERSION.SDK_INT >= 23) {
@@ -223,6 +286,15 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
         }
         v.requestFocus();
         pointer.pulse();
+        hideKeyboard();
+    }
+
+    /** A click in a text field opens the projector's keyboard: close it, the phone types. */
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        Runnable hide = () -> imm.hideSoftInputFromWindow(root.getWindowToken(), 0);
+        root.postDelayed(hide, 150);
+        root.postDelayed(hide, 600);
     }
 
     private void hover() {

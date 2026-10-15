@@ -15,7 +15,13 @@ final class ProjectionPanel {
     private static final int COLOR = 0xFF8F6BFF;
 
     private static final ComponentName VENDOR_SETTINGS = new ComponentName("com.htc.htcsettings", "com.htc.activity.ProjectionActivity");
-    private static final ComponentName HDMI_SOURCE = new ComponentName("com.softwinner.awsource", "com.softwinner.awsource.MainActivity");
+    /**
+     * The Allwinner firmware declares HDMI1-3 and two CVBS inputs whatever the board has;
+     * the HY300 only wires HDMI1. The live TV app reopens the last input (HDMI1) directly,
+     * so HDMI skips the vendor's five-input picker, which only launches this app anyway.
+     */
+    private static final ComponentName HDMI_LIVE = new ComponentName("com.softwinner.awlivetv", "com.softwinner.awlivetv.MainActivity");
+    private static final ComponentName HDMI_PICKER = new ComponentName("com.softwinner.awsource", "com.softwinner.awsource.MainActivity");
 
     private final Activity act;
     private final Ui ui;
@@ -33,13 +39,20 @@ final class ProjectionPanel {
         this.prefs = prefs;
     }
 
+    private static ComponentName hdmi(Activity act) {
+        for (ComponentName c : new ComponentName[] {HDMI_LIVE, HDMI_PICKER}) {
+            if (new Intent().setComponent(c).resolveActivity(act.getPackageManager()) != null) return c;
+        }
+        return null;
+    }
+
     static boolean hasHdmi(Activity act) {
-        return new Intent().setComponent(HDMI_SOURCE).resolveActivity(act.getPackageManager()) != null;
+        return hdmi(act) != null;
     }
 
     static void openHdmi(Activity act) {
         try {
-            act.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(HDMI_SOURCE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            act.startActivity(new Intent(Intent.ACTION_MAIN).setComponent(hdmi(act)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         } catch (RuntimeException e) {
             Toast.makeText(act, act.getString(R.string.launch_failed, "HDMI"), Toast.LENGTH_SHORT).show();
         }
