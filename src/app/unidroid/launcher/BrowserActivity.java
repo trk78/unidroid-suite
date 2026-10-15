@@ -48,19 +48,35 @@ import java.util.List;
  * or mangled them.
  */
 public final class BrowserActivity extends Activity implements BrowserControl.Commands {
-    private static final int MAX_TABS = 6;
+    private static final int MAX_TABS = 10;
     private static final String DESKTOP_UA =
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.120 Safari/537.36";
     private static final String SEARCH = "https://www.google.com/search?q=";
 
+    /**
+     * A tab. Only the current one holds a WebView: the others keep their address, title
+     * and history, and load again when picked. All WebViews share one renderer process,
+     * so every live tab costs RAM and CPU on a 1 GB, thermally throttled projector.
+     */
     private static final class Tab {
         final int id;
-        final WebView view;
+        WebView view;
+        String url = "", title = "";
+        Bundle history;
         int progress = 100;
 
-        Tab(int id, WebView view) {
+        Tab(int id) {
             this.id = id;
-            this.view = view;
+        }
+
+        String url() {
+            String u = view != null ? view.getUrl() : url;
+            return u == null || "about:blank".equals(u) ? "" : u;
+        }
+
+        String title() {
+            String t = view != null ? view.getTitle() : title;
+            return t == null || url().isEmpty() ? "" : t;
         }
     }
 
@@ -86,7 +102,8 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
         // Typing happens on the phone: the projector's keyboard would only cover the page and grab the keys.
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
         prefs = getSharedPreferences("browser", MODE_PRIVATE);
-        desktop = prefs.getBoolean("desktop", true);
+        // Mobile pages by default: lighter, and readable at TV distance.
+        desktop = prefs.getBoolean("desktop", false);
 
         root = new FrameLayout(this);
         root.setBackgroundColor(Ui.INK);
@@ -123,14 +140,20 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     @Override
     protected void onResume() {
         super.onResume();
-        if (current != null) current.view.onResume();
+        if (current != null) {
+            current.view.onResume();
+            current.view.resumeTimers();
+        }
         publish();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (current != null) current.view.onPause();
+        if (current != null) {
+            current.view.onPause();
+            current.view.pauseTimers(); // no JavaScript running behind other apps
+        }
         save();
         CookieManager.getInstance().flush();
     }
@@ -138,7 +161,7 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     @Override
     protected void onDestroy() {
         control.stop();
-        for (Tab t : tabs) t.view.destroy();
+        if (current != null && current.view != null) current.view.destroy();
         tabs.clear();
         super.onDestroy();
     }
@@ -327,7 +350,7 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     private void setDesktop(boolean on) {
         desktop = on;
         prefs.edit().putBoolean("desktop", on).apply();
-        for (Tab t : tabs) applyMode(t.view);
+        applyMode(current.view); // the other tabs pick the mode up when they load again
         current.view.reload();
     }
 
@@ -365,14 +388,27 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
 
     // ------------------------------------------------------------------ tabs
 
-    @SuppressLint("SetJavaScriptEnabled")
     private Tab newTab(String url, boolean focus) {
         if (tabs.size() >= MAX_TABS) {
-            // Reuse the oldest tab rather than run out of memory on 1 GB devices.
+            // Reuse the oldest tab rather than pile up tabs.
             Tab oldest = tabs.get(0);
-            if (url != null) oldest.view.loadUrl(toUrl(url));
+            if (url != null) {
+                oldest.url = toUrl(url);
+                oldest.history = null;
+                if (oldest.view != null) oldest.view.loadUrl(oldest.url);
+            }
             return oldest;
         }
+        Tab tab = new Tab(nextId++);
+        if (url != null) tab.url = toUrl(url);
+        tabs.add(tab);
+        if (focus) select(tab);
+        return tab;
+    }
+
+    /** Gives the tab a WebView and loads its saved history, its page, or the start page. */
+    @SuppressLint("SetJavaScriptEnabled")
+    private void load(Tab tab) {
         WebView v = new WebView(this);
         v.setBackgroundColor(0xFFFFFFFF);
         WebSettings s = v.getSettings();
@@ -389,7 +425,6 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
         applyMode(v);
         CookieManager.getInstance().setAcceptThirdPartyCookies(v, true);
 
-        Tab tab = new Tab(nextId++, v);
         v.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String u, Bitmap favicon) {
@@ -424,11 +459,26 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
                 exitFullscreen();
             }
         });
-        tabs.add(tab);
-        if (url != null) v.loadUrl(toUrl(url));
-        else v.loadDataWithBaseURL("about:blank", startPage(), "text/html", "UTF-8", null);
-        if (focus) select(tab);
-        return tab;
+        tab.view = v;
+        android.webkit.WebBackForwardList restored = tab.history != null ? v.restoreState(tab.history) : null;
+        tab.history = null;
+        if (restored == null || restored.getSize() == 0) {
+            if (!tab.url.isEmpty()) v.loadUrl(tab.url);
+            else v.loadDataWithBaseURL("about:blank", startPage(), "text/html", "UTF-8", null);
+        }
+    }
+
+    /** Frees a tab's WebView, keeping what is needed to bring it back. */
+    private void unload(Tab tab) {
+        if (tab.view == null) return;
+        tab.url = tab.url();
+        tab.title = tab.title();
+        tab.history = new Bundle();
+        tab.view.saveState(tab.history);
+        pages.removeView(tab.view);
+        tab.view.destroy();
+        tab.view = null;
+        tab.progress = 100;
     }
 
     private void applyMode(WebView v) {
@@ -436,11 +486,9 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     }
 
     private void select(Tab tab) {
-        if (current != null && current != tab) {
-            current.view.onPause();
-            pages.removeView(current.view);
-        }
+        if (current != null && current != tab) unload(current);
         current = tab;
+        if (tab.view == null) load(tab);
         if (tab.view.getParent() == null) pages.addView(tab.view, new FrameLayout.LayoutParams(-1, -1));
         tab.view.onResume();
         tab.view.requestFocus();
@@ -463,11 +511,12 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
             tabs.remove(i);
             if (t == current) {
                 pages.removeView(t.view);
+                t.view.destroy();
+                t.view = null;
                 current = null;
                 if (tabs.isEmpty()) newTab(null, false);
                 select(tabs.get(Math.max(0, Math.min(i, tabs.size()) - 1)));
             }
-            t.view.destroy();
             save();
             return;
         }
@@ -491,8 +540,8 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
     private void save() {
         StringBuilder sb = new StringBuilder();
         for (Tab t : tabs) {
-            String u = t.view.getUrl();
-            if (u != null && u.startsWith("http")) sb.append(u).append('\n');
+            String u = t.url();
+            if (u.startsWith("http")) sb.append(u).append('\n');
         }
         prefs.edit().putString("tabs", sb.toString()).putInt("current", Math.max(0, tabs.indexOf(current))).apply();
     }
@@ -505,10 +554,9 @@ public final class BrowserActivity extends Activity implements BrowserControl.Co
             JSONArray arr = new JSONArray();
             for (Tab t : tabs) {
                 JSONObject j = new JSONObject();
-                String u = t.view.getUrl();
                 j.put("id", t.id);
-                j.put("title", t.view.getTitle() == null || "about:blank".equals(u) ? "" : t.view.getTitle());
-                j.put("url", u == null || "about:blank".equals(u) ? "" : u);
+                j.put("title", t.title());
+                j.put("url", t.url());
                 j.put("active", t == current);
                 arr.put(j);
             }
