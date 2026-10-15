@@ -35,8 +35,6 @@
     <string name="remote_tile_sub">Connected phones and QR code</string>
     <string name="remote_unavailable">Remote unavailable</string>
     <string name="remote_unavailable_sub">The remote server runs as root (Magisk): allow it when Magisk asks</string>
-    <string name="remote_connected">%1$s · connected</string>
-    <string name="remote_seen">%1$s · %2$s</string>
     <string name="remote_installed">Home screen app</string>
     <string name="remote_browser">In the browser</string>
     <string name="remote_devices">Devices</string>

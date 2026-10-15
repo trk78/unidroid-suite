@@ -326,6 +326,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setPadding(0, 0, px(96), 0);
         bar.setClipChildren(false);
+        bar.setClipToPadding(false); // the focused button grows into the right margin
 
         LinearLayout time = new LinearLayout(this);
         time.setOrientation(LinearLayout.VERTICAL);
@@ -607,18 +608,10 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         } else if (!s.running) {
             remoteLine1.setText(R.string.remote_unavailable);
         } else {
-            RemoteLink.Device d = null;
-            for (RemoteLink.Device x : s.devices) {
-                if (x.installed) {
-                    d = x;
-                    break;
-                }
-            }
-            remoteLine1.setText(d.connected ? getString(R.string.remote_connected, d.name)
-                    : getString(R.string.remote_seen, d.name, android.text.format.DateUtils.getRelativeTimeSpanString(
-                            d.seen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS,
-                            android.text.format.DateUtils.FORMAT_ABBREV_RELATIVE)));
+            // Installed on a phone: just "Remote", like the other tiles; the panel lists the phones.
+            remoteLine1.setText("");
         }
+        if (!remoteTileQr) remoteLine1.setVisibility(remoteLine1.length() == 0 ? View.GONE : View.VISIBLE);
         View focus = getCurrentFocus();
         if (focus != null && isInside(focus, remoteLine1)) {
             subtitle.setText(remoteSubtitle());
