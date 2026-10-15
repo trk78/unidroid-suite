@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.zip.ZipEntry;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.zip.ZipFile;
 
 /**
@@ -34,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.4.0";
+    static final String VERSION = "0.5.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     private static final String WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
@@ -45,6 +46,9 @@ public final class Server {
     private final Injector injector;
     private final Actions actions;
     private final Devices devices = new Devices(DEVICES);
+    /** Open WebSockets, to send the browser's state to every phone. */
+    private final java.util.List<OutputStream> sockets = new CopyOnWriteArrayList<>();
+    private final BrowserRelay browser = new BrowserRelay(this::broadcast);
 
     private Server(String apk, Map<String, byte[]> files, Injector injector) {
         this.apk = apk;
@@ -277,6 +281,7 @@ public final class Server {
     //   t:<txt>  type text                             p        ping -> "p"
     //   a:<name> action: settings | apps | keystone | launch:<package>
     //   h:<id>\t<installed 0|1>\t<name>  first message: who is this page
+    //   w:<command>  browser command, relayed to the UniDroid browser; its state comes back as w:<json>
     // <key> is a keycode number or name (22, DPAD_RIGHT, KEYCODE_DPAD_RIGHT).
 
     private void webSocket(InputStream in, OutputStream out, String key) throws IOException {
@@ -295,6 +300,7 @@ public final class Server {
 
         HeldKey held = new HeldKey(injector);
         Devices.Device[] device = new Devices.Device[1];
+        sockets.add(out);
         try {
             while (true) {
                 int b0 = in.read();
@@ -323,12 +329,25 @@ public final class Server {
                 } else if (opcode == 0x1) {
                     String msg = new String(payload, StandardCharsets.UTF_8);
                     if (msg.startsWith("h:") && device[0] == null) device[0] = hello(msg.substring(2));
+                    else if (msg.startsWith("w:")) browser.send(msg.substring(2));
                     else onMessage(msg, held, out);
                 }
             }
         } finally {
+            sockets.remove(out);
             held.releaseAll();
             devices.bye(device[0]);
+        }
+    }
+
+    private void broadcast(String message) {
+        byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+        for (OutputStream o : sockets) {
+            try {
+                sendFrame(o, 0x1, payload);
+            } catch (IOException e) {
+                sockets.remove(o);
+            }
         }
     }
 
@@ -381,10 +400,13 @@ public final class Server {
             out.write(0x80 | opcode);
             if (payload.length < 126) {
                 out.write(payload.length);
-            } else {
+            } else if (payload.length < 65536) {
                 out.write(126);
                 out.write(payload.length >> 8);
                 out.write(payload.length & 0xFF);
+            } else {
+                out.write(127);
+                for (int i = 7; i >= 0; i--) out.write(i >= 4 ? 0 : (payload.length >>> (8 * i)) & 0xFF);
             }
             out.write(payload);
             out.flush();

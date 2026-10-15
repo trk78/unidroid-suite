@@ -60,6 +60,11 @@
         <item quantity="other">Bluetooth · %d connected</item>
     </plurals>
 
+    <string name="browser">Browser</string>
+    <string name="browser_sub">Full-screen web, driven from your phone (Web tab of the remote)</string>
+    <string name="browser_start_title">UniDroid Browser</string>
+    <string name="browser_start_sub">Type an address or a search in the Web tab of the remote on your phone</string>
+
     <string name="launch_failed">Could not open %1$s</string>
 
     <!-- Common -->

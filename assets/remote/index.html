@@ -174,6 +174,68 @@ body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
 .sheet .btn .i { width: 21px; height: 21px; }
 .sheet .done { background: var(--accent); color: #fff; }
 
+/* ---------- web mode: the projector shows the page, the phone holds the browser */
+#web { display: none; }
+body.web .app { display: none; }
+body.web #web {
+  display: flex; flex-direction: column; gap: 14px; min-height: 100dvh; max-width: 520px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 16px);
+}
+#web header { gap: 8px; }
+.addr { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; height: 44px; border-radius: 22px; padding: 0 6px 0 16px; overflow: hidden; }
+.addr input {
+  flex: 1; min-width: 0; height: 100%; border: 0; background: none; outline: none; color: var(--fg);
+  font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text;
+}
+.addr input::placeholder { color: var(--dim); }
+.addr .bar { position: absolute; left: 0; bottom: 0; height: 2.5px; background: var(--accent); width: 0; transition: width .3s, opacity .4s; }
+.addr .btn { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.addr .btn .i { width: 19px; height: 19px; }
+.webbar { display: flex; justify-content: space-between; gap: 6px; }
+.webbar .btn { width: 52px; height: 46px; border-radius: 23px; position: relative; }
+.webbar .btn .i { width: 22px; height: 22px; }
+.webbar .btn:disabled { opacity: .3; }
+.webbar .btn.on { color: var(--accent); }
+.count {
+  position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  pointer-events: none;
+}
+.track {
+  flex: 1; min-height: 240px; border-radius: 30px; position: relative; touch-action: none; overflow: hidden;
+  display: grid; place-items: center; color: var(--dim); font-size: 14px; text-align: center; line-height: 1.5;
+}
+.track .hint { pointer-events: none; padding: 0 56px 0 30px; transition: opacity .4s; }
+.track.used .hint { opacity: 0; }
+.track::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle 80px at var(--x, 50%) var(--y, 50%), var(--touch), transparent 70%);
+  transition: opacity .35s;
+}
+.track.touch::after { opacity: 1; transition-duration: .05s; }
+.track .strip { position: absolute; top: 14px; bottom: 14px; right: 8px; width: 34px; border-radius: 17px; background: var(--field); }
+.track .strip::before { content: "⇅"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; color: var(--dim); }
+.webkeys { display: flex; justify-content: space-between; gap: 8px; }
+.webkeys .btn { flex: 1; height: 54px; border-radius: 27px; font-size: 15px; font-weight: 600; }
+.closed-note { display: none; text-align: center; color: var(--dim); font-size: 14px; }
+body.web-closed .closed-note { display: block; }
+.tabs {
+  position: fixed; inset: 0; z-index: 20; display: none; flex-direction: column; gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+  background: var(--bg); overflow-y: auto;
+}
+body.tabs-open .tabs { display: flex; }
+.tabs h2 { margin: 6px 4px 0; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.tabs .row { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px 8px 8px 16px; border-radius: 18px; }
+.tabs .row.active { outline: 2px solid var(--accent); }
+.tabs .row .t { flex: 1; min-width: 0; }
+.tabs .row b, .tabs .row small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs .row b { font-size: 15px; font-weight: 600; }
+.tabs .row small { font-size: 12.5px; color: var(--dim); margin-top: 2px; }
+.tabs .row .x { width: 36px; height: 36px; border-radius: 50%; flex: none; font-size: 20px; color: var(--dim); background: none; }
+.tabs .top { display: flex; gap: 10px; }
+.tabs .top .btn { flex: 1; height: 48px; border-radius: 24px; font-weight: 600; }
+.tabs .top .btn.primary { background: var(--accent); color: #fff; border: 0; }
+
 /* ---------- landscape / tablets */
 @media (orientation: landscape) and (min-width: 600px) {
   .app { max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 48px; }
@@ -208,6 +270,15 @@ body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
     <symbol id="i-delete" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 5.5h10.1a1.7 1.7 0 0 1 1.7 1.7v9.6a1.7 1.7 0 0 1-1.7 1.7H9.2L3 12z"/><path d="M12.4 9.6l4.8 4.8M17.2 9.6l-4.8 4.8"/></g></symbol>
     <symbol id="i-return" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 5v6.5a3 3 0 0 1-3 3H5"/><path d="M9 10.5l-4 4 4 4"/></g></symbol>
     <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11"/><path d="M8 7.2l4-3.7 4 3.7"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5.5a2 2 0 0 0-2-2h-1.5"/></g></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.8"/><path d="M3.5 9h17M3.5 15h17"/><path d="M12 3.2c2.3 2.5 3.5 5.4 3.5 8.8s-1.2 6.3-3.5 8.8c-2.3-2.5-3.5-5.4-3.5-8.8s1.2-6.3 3.5-8.8z"/></g></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9.5 5.5L16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M19 4.5v4h-4"/></g></symbol>
+    <symbol id="i-tabs" viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L12 16.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-desktop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/></g></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="7" y="2.8" width="10" height="18.4" rx="5"/><circle cx="12" cy="8.5" r="2"/><path d="M12 14v.01M12 17v.01"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -215,6 +286,7 @@ body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
 <div class="app">
   <header>
     <div class="status glass"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
+    <button class="btn small glass" id="web-open" aria-label="Web"><svg class="i"><use href="#i-globe"/></svg></button>
     <button class="btn small glass" data-action="settings" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
     <button class="btn small glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
@@ -251,6 +323,43 @@ body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
     </div>
     <button class="btn round glass" id="kb-open" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
   </div>
+</div>
+
+<div id="web">
+  <header>
+    <button class="btn small glass" id="web-remote" aria-label="Remote"><svg class="i"><use href="#i-remote"/></svg></button>
+    <form class="addr glass" id="addr-form" autocomplete="off">
+      <input id="addr" type="text" inputmode="url" enterkeyhint="go" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search or address">
+      <button class="btn" type="button" id="w-reload" aria-label="Reload"><svg class="i"><use href="#i-reload"/></svg></button>
+      <span class="bar" id="bar"></span>
+    </form>
+  </header>
+  <div class="webbar">
+    <button class="btn glass" id="w-back" aria-label="Back"><svg class="i"><use href="#i-left"/></svg></button>
+    <button class="btn glass" id="w-forward" aria-label="Forward"><svg class="i"><use href="#i-right"/></svg></button>
+    <button class="btn glass" id="w-tabs" aria-label="Tabs"><svg class="i"><use href="#i-tabs"/></svg><span class="count" id="w-count">1</span></button>
+    <button class="btn glass" id="w-star" aria-label="Bookmark"><svg class="i"><use href="#i-star"/></svg></button>
+    <button class="btn glass" id="w-desktop" aria-label="Desktop site"><svg class="i"><use href="#i-desktop"/></svg></button>
+    <button class="btn glass" id="w-exit" aria-label="Close the browser"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+  <p class="closed-note" id="closed-note"></p>
+  <div class="track glass" id="track"><span class="hint" id="track-hint"></span><span class="strip" id="strip"></span></div>
+  <div class="webkeys">
+    <button class="btn glass" id="w-kb" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
+    <button class="btn glass" id="w-zoom-out" aria-label="Zoom out">A−</button>
+    <button class="btn glass" id="w-zoom-in" aria-label="Zoom in">A+</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="top">
+    <button class="btn glass" id="tabs-done"></button>
+    <button class="btn primary" id="tabs-new"></button>
+  </div>
+  <h2 id="tabs-title"></h2>
+  <div id="tab-list"></div>
+  <h2 id="marks-title"></h2>
+  <div id="mark-list"></div>
 </div>
 
 <div class="sheet glass" id="sheet">
@@ -312,9 +421,11 @@ function connect() {
     retry = 0;
     document.body.dataset.conn = 'online';
     ws.send('h:' + deviceId + '\t' + (installed ? 1 : 0) + '\t' + deviceName);
+    if (document.body.classList.contains('web')) ws.send('w:state');
     ping();
   };
   ws.onmessage = e => {
+    if (e.data.startsWith('w:')) { web.state(e.data.slice(2)); return; }
     if (e.data === 'p') {
       $('#lat').textContent = Math.max(1, Math.round(performance.now() - pingAt)) + ' ms';
     } else if (e.data.startsWith('i:')) {
@@ -539,6 +650,177 @@ document.addEventListener('keyup', e => {
   const code = DESKTOP[e.key];
   if (code !== undefined) send('u:' + code);
 });
+
+// ---------------------------------------------------------------- web mode
+// The projector only shows the page and a pointer; this screen holds the address bar,
+// tabs, bookmarks and a track pad. Commands go to the browser as "w:" messages.
+const web = (() => {
+  const T = fr ? {
+    addr: 'Rechercher ou saisir une adresse', hint: 'Glisse pour bouger le pointeur · Touche pour cliquer<br>Deux doigts ou la bande de droite pour faire défiler',
+    closed: 'Navigateur fermé : tape une adresse pour le rouvrir.', tabs: 'Onglets', marks: 'Favoris', none: 'Aucun favori : touche ★ sur une page.',
+    done: 'OK', new: 'Nouvel onglet', blank: 'Nouvel onglet', saved: 'Ajouté aux favoris', removed: 'Retiré des favoris'
+  } : {
+    addr: 'Search or type an address', hint: 'Slide to move the pointer · Tap to click<br>Two fingers or the right strip to scroll',
+    closed: 'Browser closed: type an address to open it again.', tabs: 'Tabs', marks: 'Bookmarks', none: 'No bookmark yet: tap ★ on a page.',
+    done: 'Done', new: 'New tab', blank: 'New tab', saved: 'Bookmarked', removed: 'Bookmark removed'
+  };
+  $('#addr').placeholder = T.addr;
+  $('#track-hint').innerHTML = T.hint;
+  $('#closed-note').textContent = T.closed;
+  $('#tabs-title').textContent = T.tabs;
+  $('#marks-title').textContent = T.marks;
+  $('#tabs-done').textContent = T.done;
+  $('#tabs-new').textContent = T.new;
+
+  let st = { tabs: [], back: false, forward: false, progress: 100, desktop: true };
+  const cmd = c => send('w:' + c);
+  const current = () => st.tabs.find(t => t.active) || {};
+
+  // ---- bookmarks, kept on this phone
+  const marks = () => { try { return JSON.parse(localStorage.getItem('udr-marks') || '[]'); } catch (e) { return []; } };
+  const saveMarks = m => { try { localStorage.setItem('udr-marks', JSON.stringify(m)); } catch (e) { /* ignore */ } };
+  function toggleMark() {
+    const c = current(); if (!c.url) return;
+    const m = marks(); const i = m.findIndex(x => x.url === c.url);
+    if (i >= 0) m.splice(i, 1); else m.unshift({ url: c.url, title: c.title || c.url });
+    saveMarks(m); paint(); haptic();
+  }
+
+  function paint() {
+    const c = current();
+    if (document.activeElement !== $('#addr')) $('#addr').value = c.url || '';
+    $('#w-back').disabled = !st.back;
+    $('#w-forward').disabled = !st.forward;
+    $('#w-count').textContent = st.tabs.length || 1;
+    $('#w-desktop').classList.toggle('on', !!st.desktop);
+    $('#w-star').classList.toggle('on', !!c.url && marks().some(x => x.url === c.url));
+    const bar = $('#bar');
+    bar.style.width = (st.progress >= 100 ? 100 : Math.max(8, st.progress)) + '%';
+    bar.style.opacity = st.progress >= 100 ? 0 : 1;
+    // tab sheet
+    const list = $('#tab-list'); list.innerHTML = '';
+    st.tabs.forEach(t => {
+      const row = document.createElement('div'); row.className = 'row glass' + (t.active ? ' active' : '');
+      row.innerHTML = '<span class="t"><b></b><small></small></span><button class="btn x" aria-label="Close">×</button>';
+      row.querySelector('b').textContent = t.title || T.blank;
+      row.querySelector('small').textContent = t.url || '';
+      row.addEventListener('click', e => { if (e.target.closest('.x')) return; cmd('tab ' + t.id); closeTabs(); });
+      row.querySelector('.x').addEventListener('click', () => cmd('close ' + t.id));
+      list.appendChild(row);
+    });
+    const ml = $('#mark-list'); ml.innerHTML = '';
+    const m = marks();
+    if (!m.length) { const p = document.createElement('p'); p.className = 'closed-note'; p.style.display = 'block'; p.textContent = T.none; ml.appendChild(p); }
+    m.forEach(b => {
+      const row = document.createElement('div'); row.className = 'row glass';
+      row.innerHTML = '<span class="t"><b></b><small></small></span><button class="btn x" aria-label="Remove">×</button>';
+      row.querySelector('b').textContent = b.title;
+      row.querySelector('small').textContent = b.url;
+      row.addEventListener('click', e => { if (e.target.closest('.x')) return; cmd('open ' + b.url); closeTabs(); });
+      row.querySelector('.x').addEventListener('click', () => { saveMarks(marks().filter(x => x.url !== b.url)); paint(); });
+      ml.appendChild(row);
+    });
+  }
+
+  function state(json) {
+    try {
+      const o = JSON.parse(json);
+      if (o.closed) { document.body.classList.add('web-closed'); return; }
+      document.body.classList.remove('web-closed');
+      st = o; paint();
+    } catch (e) { /* ignore */ }
+  }
+
+  function open() {
+    document.body.classList.add('web');
+    try { sessionStorage.setItem('udr-mode', 'web'); } catch (e) { /* ignore */ }
+    cmd('show'); cmd('state'); paint();
+  }
+  function close() {
+    document.body.classList.remove('web');
+    try { sessionStorage.setItem('udr-mode', 'remote'); } catch (e) { /* ignore */ }
+  }
+  const openTabs = () => { paint(); document.body.classList.add('tabs-open'); };
+  const closeTabs = () => document.body.classList.remove('tabs-open');
+
+  $('#web-open').addEventListener('click', open);
+  $('#web-remote').addEventListener('click', close);
+  $('#addr-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = $('#addr').value.trim();
+    if (v) { cmd('open ' + v); $('#addr').blur(); }
+  });
+  $('#addr').addEventListener('focus', () => $('#addr').select());
+  $('#w-reload').addEventListener('click', () => cmd(st.progress < 100 ? 'stop' : 'reload'));
+  $('#w-back').addEventListener('click', () => cmd('back'));
+  $('#w-forward').addEventListener('click', () => cmd('forward'));
+  $('#w-tabs').addEventListener('click', openTabs);
+  $('#w-star').addEventListener('click', toggleMark);
+  $('#w-desktop').addEventListener('click', () => cmd('mode ' + (st.desktop ? 'mobile' : 'desktop')));
+  $('#w-exit').addEventListener('click', () => { cmd('exit'); close(); });
+  $('#w-zoom-in').addEventListener('click', () => cmd('zoom in'));
+  $('#w-zoom-out').addEventListener('click', () => cmd('zoom out'));
+  $('#w-kb').addEventListener('click', openKeyboard);
+  $('#tabs-done').addEventListener('click', closeTabs);
+  $('#tabs-new').addEventListener('click', () => { cmd('new'); closeTabs(); $('#addr').focus(); });
+
+  // ---- track pad: one finger moves the pointer, a tap clicks, two fingers (or the strip) scroll
+  const track = $('#track'), strip = $('#strip');
+  const pts = new Map();
+  let moved = 0, downAt = 0, mode = 'move', pend = { mx: 0, my: 0, sx: 0, sy: 0 }, frame = 0;
+  function flush() {
+    frame = 0;
+    if (pend.mx || pend.my) cmd('move ' + pend.mx.toFixed(1) + ' ' + pend.my.toFixed(1));
+    if (pend.sx || pend.sy) cmd('scroll ' + pend.sx.toFixed(1) + ' ' + pend.sy.toFixed(1));
+    pend = { mx: 0, my: 0, sx: 0, sy: 0 };
+  }
+  const queue = () => { if (!frame) frame = requestAnimationFrame(flush); };
+  track.addEventListener('touchstart', noDefault, { passive: false });
+  track.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    track.setPointerCapture(e.pointerId);
+    track.classList.add('touch', 'used');
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) {
+      moved = 0; downAt = performance.now();
+      mode = e.target === strip ? 'strip' : 'move';
+    } else {
+      mode = 'scroll';
+    }
+  });
+  track.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const r = track.getBoundingClientRect();
+    track.style.setProperty('--x', (e.clientX - r.left) + 'px');
+    track.style.setProperty('--y', (e.clientY - r.top) + 'px');
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    if (mode === 'move') {
+      // Faster swipes travel further, like a laptop track pad.
+      const gain = 1.5 + Math.min(2.5, Math.hypot(dx, dy) / 10);
+      pend.mx += dx * gain; pend.my += dy * gain;
+    } else if (mode === 'strip') {
+      pend.sy += dy * 3;
+    } else {
+      pend.sx += dx * 1.5 / pts.size; pend.sy += dy * 1.5 / pts.size;
+    }
+    queue();
+  });
+  function up(e) {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pts.size) return;
+    track.classList.remove('touch');
+    if (mode === 'move' && moved < 8 && performance.now() - downAt < 300) { flush(); cmd('click'); haptic(); }
+    mode = 'move';
+  }
+  track.addEventListener('pointerup', up);
+  track.addEventListener('pointercancel', up);
+
+  try { if (sessionStorage.getItem('udr-mode') === 'web') setTimeout(open, 300); } catch (e) { /* ignore */ }
+  return { state };
+})();
 
 connect();
 </script>

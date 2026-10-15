@@ -30,6 +30,9 @@ final class Actions {
             injector.tap(3); // KEYCODE_HOME
             return true;
         }
+        if (action.equals("browser")) {
+            return isInstalled(LAUNCHER) && exec("am", "start", "-n", LAUNCHER + "/.BrowserActivity");
+        }
         if (action.equals("keystone")) {
             return isInstalled(LAUNCHER) && exec("am", "start", "-n", LAUNCHER + "/.HomeActivity", "--es", "open", "keystone");
         }
@@ -51,7 +54,7 @@ final class Actions {
     }
 
     /** Runs a command in the background so the WebSocket loop never waits on it. */
-    private static boolean exec(String... cmd) {
+    static boolean exec(String... cmd) {
         new Thread(() -> {
             try {
                 Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();

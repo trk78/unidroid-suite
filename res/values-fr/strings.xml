@@ -58,6 +58,11 @@
         <item quantity="other">Bluetooth · %d connectés</item>
     </plurals>
 
+    <string name="browser">Navigateur</string>
+    <string name="browser_sub">Le Web en plein écran, piloté depuis ton téléphone (onglet Web de la télécommande)</string>
+    <string name="browser_start_title">Navigateur UniDroid</string>
+    <string name="browser_start_sub">Tape une adresse ou une recherche dans l\'onglet Web de la télécommande sur ton téléphone</string>
+
     <string name="launch_failed">Impossible d\'ouvrir %1$s</string>
 
     <!-- Commun -->

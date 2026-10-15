@@ -393,6 +393,8 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
             projectorRow.addView(tile(R.drawable.ic_hdmi, getString(R.string.hdmi), null, getString(R.string.hdmi_sub),
                     0xFFFF9F43, v -> ProjectionPanel.openHdmi(this), 220));
         }
+        projectorRow.addView(tile(R.drawable.ic_globe, getString(R.string.browser), null, getString(R.string.browser_sub),
+                0xFF2ED3C6, v -> start(new Intent(this, BrowserActivity.class), getString(R.string.browser)), 220));
         projectorRow.addView(tile(R.drawable.ic_wifi, getString(R.string.wifi), null, getString(R.string.wifi_sub),
                 0xFF4CC4FF, v -> wifiPanel.open(), 220));
         projectorRow.addView(tile(R.drawable.ic_bluetooth, getString(R.string.bluetooth), null, getString(R.string.bluetooth_sub),
