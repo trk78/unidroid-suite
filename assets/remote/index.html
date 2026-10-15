@@ -146,8 +146,41 @@ body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .2
 @keyframes blip { 40% { transform: scale(1.35); } }
 @keyframes spin { to { --a: 360deg; } }
 
-/* ---------- controls */
-.controls { display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 18px; }
+/* ---------- controls: blocks the user can reorder or hide */
+.controls { flex: 1; display: flex; flex-direction: column; gap: 18px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); }
+.block.off { display: none; }
+.status { cursor: pointer; }
+.status .i { width: 15px; height: 15px; color: var(--dim); flex: none; }
+.custom { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 14px; }
+.custom:empty { display: none; }
+.cbtn { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.cbtn .btn { width: 58px; height: 58px; border-radius: 50%; }
+.cbtn .btn img { width: 34px; height: 34px; border-radius: 9px; pointer-events: none; }
+.cbtn .btn .k { font-size: 14px; font-weight: 700; pointer-events: none; }
+.cbtn span { font-size: 11.5px; color: var(--dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- editor */
+body.edit-open #edit, body.pick-open #pick { display: flex; }
+.edit .row, .pick .row { cursor: pointer; }
+.edit .row .ic { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--glass-hi); }
+.edit .row .ic img { width: 24px; height: 24px; border-radius: 6px; }
+.edit .row .ic .i, .pick .row .i { width: 20px; height: 20px; }
+.edit .mv { width: 36px; height: 36px; border-radius: 50%; flex: none; border: 0; background: var(--glass); color: var(--fg); font-size: 18px; }
+.edit .mv:disabled { opacity: .25; }
+.edit .add { height: 52px; border-radius: 26px; font-weight: 600; color: var(--accent); }
+.switch { width: 50px; height: 30px; border-radius: 15px; background: var(--field); position: relative; flex: none; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); transition: transform .2s; }
+.on > .switch { background: var(--green); }
+.on > .switch::after { transform: translateX(20px); }
+.seg { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--field); }
+.seg button { flex: 1; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--fg); font: inherit; font-size: 14px; font-weight: 600; }
+.seg button.on { background: var(--glass-hi); }
+.pick .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; padding-top: 6px; }
+.pick .grid .cbtn { cursor: pointer; }
+.pick form { display: flex; flex-direction: column; gap: 10px; }
+.pick input { height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: var(--field); color: var(--fg); font: inherit; }
+.pick .note { color: var(--dim); font-size: 14px; text-align: center; padding: 20px; }
 .pill {
   grid-column: span 2; display: flex; align-items: center; justify-content: space-between;
   height: 68px; border-radius: 34px; padding: 0 6px;
@@ -244,7 +277,9 @@ body.tabs-open .tabs { display: flex; }
   .app { max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 48px; }
   header { grid-column: 1 / -1; }
   .pad { width: min(42vw, 70dvh, 380px); }
-  .controls { align-self: center; }
+  .controls { align-self: center; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+  .controls { grid-column: 1 / -1; }
+  .controls .pad-wrap { grid-row: span 4; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, .pad::before { animation: none !important; transition-duration: 0s !important; }
@@ -282,13 +317,15 @@ body.tabs-open .tabs { display: flex; }
     <symbol id="i-desktop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M9 20h6M12 16.5V20"/></g></symbol>
     <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="7" y="2.8" width="10" height="18.4" rx="5"/><circle cx="12" cy="8.5" r="2"/><path d="M12 14v.01M12 17v.01"/></g></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.8 5 13.5h6l-1 7.7 8-10.7h-6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 
 <div class="app">
   <header>
-    <div class="status glass"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
+    <div class="status glass" id="status" role="button"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
     <button class="btn glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
 
@@ -298,7 +335,8 @@ body.tabs-open .tabs { display: flex; }
     <button class="x" id="install-close" aria-label="Close">×</button>
   </div>
 
-  <div class="pad-wrap">
+  <div class="controls" id="blocks">
+  <div class="pad-wrap block" data-block="pad">
     <div class="pad glass" id="pad" role="application" aria-label="Touch pad: tap, swipe or hold">
       <div class="ok"></div>
       <svg class="chev" data-z="UP" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24"/></svg>
@@ -308,15 +346,17 @@ body.tabs-open .tabs { display: flex; }
     </div>
   </div>
 
-  <div class="controls">
+  <div class="row3 block" data-block="nav">
     <button class="btn round glass" data-key="4" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
     <button class="btn round glass" data-key="3" aria-label="Home"><svg class="i"><use href="#i-home"/></svg></button>
     <button class="btn round glass" data-action="apps" aria-label="Apps"><svg class="i"><use href="#i-apps"/></svg></button>
-
+  </div>
+  <div class="row3 block" data-block="media">
     <button class="btn round glass" data-key="89" aria-label="Rewind"><svg class="i"><use href="#i-rew"/></svg></button>
     <button class="btn round glass" data-key="85" aria-label="Play / Pause"><svg class="i"><use href="#i-playpause"/></svg></button>
     <button class="btn round glass" data-key="90" aria-label="Fast forward"><svg class="i"><use href="#i-ff"/></svg></button>
-
+  </div>
+  <div class="row3 block" data-block="volume">
     <div class="pill glass">
       <button class="btn" data-key="25" aria-label="Volume down"><svg class="i"><use href="#i-minus"/></svg></button>
       <button class="btn" data-key="164" aria-label="Mute"><svg class="i"><use href="#i-mute"/></svg></button>
@@ -324,6 +364,25 @@ body.tabs-open .tabs { display: flex; }
     </div>
     <button class="btn round glass" id="kb-open" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
   </div>
+  <div class="custom block" data-block="custom" id="custom"></div>
+  </div>
+</div>
+
+<div class="tabs edit" id="edit">
+  <div class="top"><button class="btn glass" id="edit-reset"></button><button class="btn primary" id="edit-done"></button></div>
+  <h2 id="edit-layout"></h2>
+  <div id="edit-blocks"></div>
+  <h2 id="edit-buttons"></h2>
+  <div id="edit-list"></div>
+  <button class="btn glass add" id="edit-add"></button>
+  <h2 id="edit-feedback"></h2>
+  <div class="row glass" id="edit-haptics"><span class="t"><b></b><small></small></span><span class="switch"></span></div>
+</div>
+
+<div class="tabs pick" id="pick">
+  <div class="top"><button class="btn glass" id="pick-back"></button></div>
+  <div class="seg" id="pick-seg"></div>
+  <div id="pick-body"></div>
 </div>
 
 <div id="web">
@@ -427,6 +486,7 @@ function connect() {
   };
   ws.onmessage = e => {
     if (e.data.startsWith('w:')) { web.state(e.data.slice(2)); return; }
+    if (e.data.startsWith('l:')) { custom.apply(e.data.slice(2)); return; }
     if (e.data === 'p') {
       $('#lat').textContent = Math.max(1, Math.round(performance.now() - pingAt)) + ' ms';
     } else if (e.data.startsWith('i:')) {
@@ -477,7 +537,11 @@ const hapticSwitch = (() => {
   document.body.appendChild(label);
   return label;
 })();
+function hapticsOn() {
+  try { return localStorage.getItem('udr-haptics') !== 'off'; } catch (e) { return true; }
+}
 function haptic() {
+  if (!hapticsOn()) return;
   if (navigator.vibrate) navigator.vibrate(8); else hapticSwitch.click();
 }
 
@@ -856,6 +920,200 @@ const web = (() => {
 
   try { if (sessionStorage.getItem('udr-mode') === 'web') setTimeout(open, 300); } catch (e) { /* ignore */ }
   return { state };
+})();
+
+// ---------------------------------------------------------------- customisation
+// Like Control Center: blocks can be reordered or hidden, and custom buttons launch an
+// app of the projector, a UniDroid screen, an Android key or a web page. The layout lives
+// on the projector ("l:" messages), so every phone shows the same remote.
+const custom = (() => {
+  const T = fr ? {
+    done: 'OK', reset: 'Réinitialiser', layout: 'Disposition', buttons: 'Boutons personnalisés', add: 'Ajouter un bouton',
+    feedback: 'Téléphone', haptics: 'Vibrations', hapticsSub: 'Un léger tap à chaque appui (iPhone : iOS 18 ou plus)',
+    back: 'Retour', apps: 'Applis', actions: 'Actions', keys: 'Touches', link: 'Lien',
+    noApps: 'Ouvre l\u2019accueil UniDroid sur le projecteur une fois pour publier la liste des applis.',
+    url: 'Adresse (https://…)', name: 'Nom du bouton', save: 'Ajouter', none: 'Aucun bouton : ajoute tes applis et actions préférées.',
+    blocks: { pad: 'Pavé tactile', nav: 'Retour · Accueil · Applis', media: 'Lecture', volume: 'Volume · Clavier', custom: 'Boutons personnalisés' }
+  } : {
+    done: 'Done', reset: 'Reset', layout: 'Layout', buttons: 'Custom buttons', add: 'Add a button',
+    feedback: 'Phone', haptics: 'Haptics', hapticsSub: 'A light tap on every press (iPhone: iOS 18 or later)',
+    back: 'Back', apps: 'Apps', actions: 'Actions', keys: 'Keys', link: 'Link',
+    noApps: 'Open the UniDroid home screen on the projector once to publish the app list.',
+    url: 'Address (https://…)', name: 'Button name', save: 'Add', none: 'No button yet: add your favourite apps and actions.',
+    blocks: { pad: 'Touch pad', nav: 'Back · Home · Apps', media: 'Playback', volume: 'Volume · Keyboard', custom: 'Custom buttons' }
+  };
+  const ACTIONS = [
+    ['open:keystone', fr ? 'Trapèze' : 'Keystone', 'i-desktop'],
+    ['open:projection', 'Projection', 'i-desktop'],
+    ['hdmi', 'HDMI', 'i-bolt'],
+    ['browser', fr ? 'Navigateur' : 'Browser', 'i-globe'],
+    ['open:wifi', 'Wi-Fi', 'i-bolt'],
+    ['open:bluetooth', 'Bluetooth', 'i-bolt'],
+    ['open:settings', fr ? 'Réglages UniDroid' : 'UniDroid settings', 'i-gear'],
+    ['settings', fr ? 'Réglages Android' : 'Android settings', 'i-gear'],
+    ['apps', fr ? 'Toutes les applis' : 'All apps', 'i-apps']
+  ];
+  const KEYS = [
+    [82, 'Menu', '☰'], [165, 'Info', 'i'], [175, fr ? 'Sous-titres' : 'Subtitles', 'CC'], [84, fr ? 'Recherche' : 'Search', '⌕'],
+    [88, fr ? 'Précédent' : 'Previous', '⏮'], [87, fr ? 'Suivant' : 'Next', '⏭'], [86, 'Stop', '■'], [176, fr ? 'Réglages' : 'Settings', '⚙']
+  ];
+  const DEFAULT = { v: 1, order: ['pad', 'nav', 'media', 'volume', 'custom'], hidden: [], buttons: [] };
+  let L = JSON.parse(JSON.stringify(DEFAULT));
+
+  const esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+  const icon = (id, cls) => '<svg class="i' + (cls ? ' ' + cls : '') + '"><use href="#' + id + '"/></svg>';
+  function face(b) {
+    if (b.t === 'app') return '<img alt="" src="icon?p=' + encodeURIComponent(b.pkg) + '">';
+    if (b.t === 'action') return icon((ACTIONS.find(a => a[0] === b.a) || [])[2] || 'i-bolt');
+    if (b.t === 'url') return icon('i-globe');
+    return '<span class="k">' + esc(b.sym || '•') + '</span>';
+  }
+  function press(b) {
+    haptic();
+    if (b.t === 'app') send('a:launch:' + b.pkg);
+    else if (b.t === 'action') send('a:' + b.a);
+    else if (b.t === 'url') send('a:url:' + b.url);
+    else if (b.t === 'key') send('k:' + b.k);
+  }
+
+  // ---- render the remote
+  function render() {
+    const host = $('#blocks');
+    const order = L.order.filter(n => host.querySelector('[data-block="' + n + '"]'));
+    for (const n of DEFAULT.order) if (!order.includes(n)) order.push(n);
+    order.forEach(n => {
+      const el = host.querySelector('[data-block="' + n + '"]');
+      host.appendChild(el);
+      el.classList.toggle('off', L.hidden.includes(n));
+    });
+    const box = $('#custom'); box.innerHTML = '';
+    L.buttons.forEach(b => {
+      const c = document.createElement('div'); c.className = 'cbtn';
+      c.innerHTML = '<button class="btn glass" aria-label="' + esc(b.label) + '">' + face(b) + '</button><span>' + esc(b.label) + '</span>';
+      const btn = c.querySelector('button');
+      btn.addEventListener('touchstart', noDefault, { passive: false });
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); btn.classList.add('pressed'); });
+      btn.addEventListener('pointerup', () => { if (btn.classList.contains('pressed')) { btn.classList.remove('pressed'); press(b); } });
+      btn.addEventListener('pointerleave', () => btn.classList.remove('pressed'));
+      box.appendChild(c);
+    });
+  }
+  function apply(json) {
+    try {
+      const o = JSON.parse(json);
+      if (o && o.v === 1) L = { v: 1, order: o.order || DEFAULT.order, hidden: o.hidden || [], buttons: (o.buttons || []).slice(0, 24) };
+    } catch (e) { return; }
+    render();
+    if (document.body.classList.contains('edit-open')) paintEditor();
+  }
+  function save() { render(); paintEditor(); send('l:' + JSON.stringify(L)); }
+
+  // ---- editor
+  function row(html, cls) { const r = document.createElement('div'); r.className = 'row glass' + (cls ? ' ' + cls : ''); r.innerHTML = html; return r; }
+  function move(list, i, d) { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; save(); }
+  function paintEditor() {
+    const eb = $('#edit-blocks'); eb.innerHTML = '';
+    L.order.forEach((n, i) => {
+      const shown = !L.hidden.includes(n);
+      const r = row('<span class="t"><b>' + esc(T.blocks[n] || n) + '</b></span><button class="mv" aria-label="Up">↑</button><button class="mv" aria-label="Down">↓</button><span class="switch"></span>', shown ? 'on' : '');
+      const [up, down] = r.querySelectorAll('.mv');
+      up.disabled = i === 0; down.disabled = i === L.order.length - 1;
+      up.addEventListener('click', e => { e.stopPropagation(); move(L.order, i, -1); });
+      down.addEventListener('click', e => { e.stopPropagation(); move(L.order, i, 1); });
+      r.addEventListener('click', () => {
+        L.hidden = shown ? L.hidden.concat(n) : L.hidden.filter(x => x !== n);
+        // Never hide everything: the pad stays reachable.
+        if (L.order.every(x => L.hidden.includes(x))) L.hidden = L.hidden.filter(x => x !== 'pad');
+        save();
+      });
+      eb.appendChild(r);
+    });
+    const el = $('#edit-list'); el.innerHTML = '';
+    if (!L.buttons.length) { const p = document.createElement('p'); p.className = 'closed-note'; p.style.display = 'block'; p.textContent = T.none; el.appendChild(p); }
+    L.buttons.forEach((b, i) => {
+      const r = row('<span class="ic">' + face(b) + '</span><span class="t"><b>' + esc(b.label) + '</b></span><button class="mv" aria-label="Up">↑</button><button class="mv" aria-label="Down">↓</button><button class="btn x" aria-label="Remove">×</button>');
+      const [up, down] = r.querySelectorAll('.mv');
+      up.disabled = i === 0; down.disabled = i === L.buttons.length - 1;
+      up.addEventListener('click', () => move(L.buttons, i, -1));
+      down.addEventListener('click', () => move(L.buttons, i, 1));
+      r.querySelector('.x').addEventListener('click', () => { L.buttons.splice(i, 1); save(); });
+      el.appendChild(r);
+    });
+    $('#edit-haptics').classList.toggle('on', hapticsOn());
+  }
+  function openEditor() { paintEditor(); document.body.classList.add('edit-open'); }
+  function closeEditor() { document.body.classList.remove('edit-open', 'pick-open'); }
+
+  // ---- picker
+  let tab = 'apps';
+  function addButton(b) { if (L.buttons.length < 24) L.buttons.push(b); document.body.classList.remove('pick-open'); haptic(); save(); }
+  function grid(items) {
+    const g = document.createElement('div'); g.className = 'grid';
+    items.forEach(([b, html]) => {
+      const c = document.createElement('div'); c.className = 'cbtn';
+      c.innerHTML = '<span class="btn glass" style="width:58px;height:58px;border-radius:50%">' + html + '</span><span>' + esc(b.label) + '</span>';
+      c.addEventListener('click', () => addButton(b));
+      g.appendChild(c);
+    });
+    return g;
+  }
+  async function paintPicker() {
+    const seg = $('#pick-seg'); seg.innerHTML = '';
+    [['apps', T.apps], ['actions', T.actions], ['keys', T.keys], ['link', T.link]].forEach(([id, label]) => {
+      const b = document.createElement('button'); b.textContent = label; b.className = id === tab ? 'on' : '';
+      b.addEventListener('click', () => { tab = id; paintPicker(); });
+      seg.appendChild(b);
+    });
+    const body = $('#pick-body'); body.innerHTML = '';
+    if (tab === 'apps') {
+      let apps = [];
+      try { apps = await (await fetch('apps', { cache: 'no-store' })).json(); } catch (e) { /* offline */ }
+      if (tab !== 'apps') return;
+      if (!apps.length) { const n = document.createElement('p'); n.className = 'note'; n.textContent = T.noApps; body.appendChild(n); return; }
+      body.appendChild(grid(apps.map(a => { const b = { t: 'app', pkg: a.pkg, label: a.label }; return [b, face(b)]; })));
+    } else if (tab === 'actions') {
+      body.appendChild(grid(ACTIONS.map(([a, label]) => { const b = { t: 'action', a, label }; return [b, face(b)]; })));
+    } else if (tab === 'keys') {
+      body.appendChild(grid(KEYS.map(([k, label, sym]) => { const b = { t: 'key', k, label, sym }; return [b, face(b)]; })));
+    } else {
+      const f = document.createElement('form');
+      f.innerHTML = '<input id="pick-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="' + esc(T.url) + '">'
+        + '<input id="pick-name" type="text" maxlength="24" placeholder="' + esc(T.name) + '">'
+        + '<button class="btn primary" style="height:48px;border-radius:24px;background:var(--accent);color:#fff;font-weight:600">' + esc(T.save) + '</button>';
+      f.addEventListener('submit', e => {
+        e.preventDefault();
+        let url = f.querySelector('#pick-url').value.trim();
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+        const name = f.querySelector('#pick-name').value.trim() || url.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0];
+        addButton({ t: 'url', url, label: name });
+      });
+      body.appendChild(f);
+    }
+  }
+
+  // ---- wiring
+  $('#edit-done').textContent = T.done;
+  $('#edit-reset').textContent = T.reset;
+  $('#edit-layout').textContent = T.layout;
+  $('#edit-buttons').textContent = T.buttons;
+  $('#edit-add').textContent = '+ ' + T.add;
+  $('#edit-feedback').textContent = T.feedback;
+  $('#edit-haptics b').textContent = T.haptics;
+  $('#edit-haptics small').textContent = T.hapticsSub;
+  $('#pick-back').textContent = '‹ ' + T.back;
+  $('#status').insertAdjacentHTML('beforeend', icon('i-edit'));
+  $('#status').addEventListener('click', openEditor);
+  $('#edit-done').addEventListener('click', closeEditor);
+  $('#edit-reset').addEventListener('click', () => { L = JSON.parse(JSON.stringify(DEFAULT)); save(); });
+  $('#edit-add').addEventListener('click', () => { document.body.classList.add('pick-open'); paintPicker(); });
+  $('#pick-back').addEventListener('click', () => document.body.classList.remove('pick-open'));
+  $('#edit-haptics').addEventListener('click', () => {
+    try { localStorage.setItem('udr-haptics', hapticsOn() ? 'off' : 'on'); } catch (e) { /* ignore */ }
+    paintEditor(); haptic();
+  });
+  render();
+  return { apply };
 })();
 
 connect();

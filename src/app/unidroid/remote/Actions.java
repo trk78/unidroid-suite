@@ -11,6 +11,11 @@ final class Actions {
     /** The UniDroid app (launcher side) provides the "apps" and "keystone" screens. */
     static final String LAUNCHER = "app.unidroid.launcher";
     private static final Pattern PACKAGE = Pattern.compile("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+");
+    /** Launcher screens a custom button can open. */
+    private static final java.util.Set<String> SCREENS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "apps", "remote", "keystone", "projection", "wifi", "bluetooth", "settings"));
+    private static final Pattern URL = Pattern.compile("https?://[^\\s]{1,2000}");
+    private static final String[] HDMI = {"com.softwinner.awlivetv/.MainActivity", "com.softwinner.awsource/.MainActivity"};
 
     private final Injector injector;
 
@@ -36,6 +41,23 @@ final class Actions {
         if (action.equals("keystone")) {
             return isInstalled(LAUNCHER) && exec("am", "start", "-n", LAUNCHER + "/.HomeActivity", "--es", "open", "keystone");
         }
+        if (action.startsWith("open:")) {
+            String screen = action.substring(5);
+            return SCREENS.contains(screen) && isInstalled(LAUNCHER)
+                    && exec("am", "start", "-n", LAUNCHER + "/.HomeActivity", "--es", "open", screen);
+        }
+        if (action.equals("hdmi")) {
+            // HDMI1 through the live TV app (it reopens the last input), else the input picker.
+            for (String c : HDMI) {
+                if (isInstalled(c.substring(0, c.indexOf('/')))) return exec("am", "start", "-n", c);
+            }
+            return false;
+        }
+        if (action.startsWith("url:")) {
+            String url = action.substring(4);
+            return URL.matcher(url).matches() && isInstalled(LAUNCHER)
+                    && exec("am", "start", "-n", LAUNCHER + "/.BrowserActivity", "--es", "url", url);
+        }
         if (action.startsWith("launch:")) {
             String pkg = action.substring(7);
             if (!PACKAGE.matcher(pkg).matches()) return false;
@@ -47,6 +69,10 @@ final class Actions {
                     + " [ -n \"$c\" ] && am start -n $c", pkg);
         }
         return false;
+    }
+
+    static boolean isPackageName(String s) {
+        return PACKAGE.matcher(s).matches();
     }
 
     private static boolean isInstalled(String pkg) {

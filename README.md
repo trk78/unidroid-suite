@@ -39,6 +39,7 @@ remote server and shows a QR code until a phone has added the remote to its home
 | | |
 |---|---|
 | 🖱️ **Track pad for the web** | In the Web tab: slide to move the pointer, tap to click, two fingers or the side strip to scroll, the phone keyboard types into the page |
+| 🎛️ **Customizable remote** | Tap the status pill: reorder or hide blocks, add custom buttons (projector apps with their icon, UniDroid screens, Android keys, web links), turn haptics off. The layout is stored on the projector, shared by every phone |
 | 📷 **QR code on the TV** | Scan it with the phone camera; once the remote is on the phone's home screen, the tile shows the phone and when it was last seen instead |
 | ⚡ **Instant** | 6–8 ms per key press over Wi-Fi: one persistent process injects keys, nothing is spawned per press |
 | 🎯 **Apple TV-style touch pad** | Tap an edge for a direction, swipe to scroll fast, hold to repeat |

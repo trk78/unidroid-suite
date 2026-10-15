@@ -173,7 +173,8 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
 
     /**
      * Screens other apps (and the remote) can open directly:
-     * am start -n app.unidroid.launcher/.HomeActivity --es open apps|remote|keystone
+     * am start -n app.unidroid.launcher/.HomeActivity --es open
+     * apps|remote|keystone|projection|wifi|bluetooth|settings
      */
     private boolean openShortcut(String open) {
         if ("apps".equals(open)) {
@@ -182,6 +183,14 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
             remotePanel.open();
         } else if ("keystone".equals(open)) {
             projectionPanel.openKeystone();
+        } else if ("projection".equals(open)) {
+            projectionPanel.open();
+        } else if ("wifi".equals(open)) {
+            wifiPanel.open();
+        } else if ("bluetooth".equals(open)) {
+            bluetoothPanel.open();
+        } else if ("settings".equals(open)) {
+            settingsPanel.open();
         } else {
             return false;
         }
@@ -415,6 +424,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
 
     private void reload() {
         apps = AppRepo.load(this);
+        AppExport.write(this, apps);
         List<AppRepo.App> favorites = AppRepo.favorites(prefs.raw(), apps);
         View focused = getCurrentFocus();
 

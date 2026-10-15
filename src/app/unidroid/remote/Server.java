@@ -35,9 +35,14 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.5.2";
+    static final String VERSION = "0.6.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
+    /** The remote's layout and custom buttons, shared by every phone. */
+    private static final File LAYOUT = new File("/data/local/tmp/unidroid/layout.json");
+    /** Apps and icons published by the launcher (AppExport), readable as root. */
+    private static final File APPS = new File("/data/data/" + Actions.LAUNCHER + "/files/remote");
+    private static final int LAYOUT_MAX = 32 * 1024;
     private static final String WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_FRAME = 64 * 1024;
 
@@ -178,6 +183,18 @@ public final class Server {
                 case "/info":
                     respond(out, 200, "application/json", local ? localInfo() : info(), head);
                     break;
+                case "/apps": {
+                    byte[] list = readFile(new File(APPS, "apps.json"));
+                    respond(out, 200, "application/json", list != null ? list : "[]".getBytes(StandardCharsets.UTF_8), head);
+                    break;
+                }
+                case "/icon": {
+                    String pkg = param(query, "p");
+                    byte[] png = pkg != null && Actions.isPackageName(pkg) ? readFile(new File(APPS, "icons/" + pkg + ".png")) : null;
+                    if (png == null) respond(out, 404, "text/plain", "no icon", head);
+                    else respondCached(out, "image/png", png, head);
+                    break;
+                }
                 case "/forget": {
                     // Only the launcher, on the device itself, manages the device list.
                     boolean ok = local && devices.forget(param(query, "id"));
@@ -215,6 +232,37 @@ public final class Server {
             case "png": return "image/png";
             default: return "application/octet-stream";
         }
+    }
+
+    /** App icons change rarely: let the phone keep them for a day. */
+    private static void respondCached(OutputStream out, String type, byte[] body, boolean head) throws IOException {
+        String headers = "HTTP/1.1 200 OK\r\nContent-Type: " + type + "\r\nContent-Length: " + body.length
+                + "\r\nCache-Control: max-age=86400\r\nX-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n";
+        out.write(headers.getBytes(StandardCharsets.US_ASCII));
+        if (!head) out.write(body);
+        out.flush();
+    }
+
+    private static byte[] readFile(File f) {
+        try {
+            if (!f.isFile() || f.length() > 4 * 1024 * 1024) return null;
+            return java.nio.file.Files.readAllBytes(f.toPath());
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /** Saves a new layout from a phone and sends it to all the others. */
+    private void saveLayout(String json) {
+        if (json.length() > LAYOUT_MAX || !json.startsWith("{")) return;
+        try {
+            File tmp = new File(LAYOUT.getPath() + ".tmp");
+            java.nio.file.Files.write(tmp.toPath(), json.getBytes(StandardCharsets.UTF_8));
+            if (!tmp.renameTo(LAYOUT)) return;
+        } catch (IOException e) {
+            return;
+        }
+        broadcast("l:" + json);
     }
 
     private static void respond(OutputStream out, int status, String type, String body, boolean head) throws IOException {
@@ -302,6 +350,8 @@ public final class Server {
         String hello = info();
         hello = hello.substring(0, hello.length() - 1) + ",\"page\":\"" + pageId + "\"}";
         sendFrame(out, 0x1, ("i:" + hello).getBytes(StandardCharsets.UTF_8));
+        byte[] layout = readFile(LAYOUT);
+        if (layout != null) sendFrame(out, 0x1, ("l:" + new String(layout, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8));
         String browserState = browser.last();
         if (browserState != null) sendFrame(out, 0x1, browserState.getBytes(StandardCharsets.UTF_8));
 
@@ -337,6 +387,7 @@ public final class Server {
                     String msg = new String(payload, StandardCharsets.UTF_8);
                     if (msg.startsWith("h:") && device[0] == null) device[0] = hello(msg.substring(2));
                     else if (msg.startsWith("w:")) browser.send(msg.substring(2));
+                    else if (msg.startsWith("l:")) saveLayout(msg.substring(2));
                     else onMessage(msg, held, out);
                 }
             }
