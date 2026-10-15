@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">UniDroid Launcher</string>
+    <string name="app_name">UniDroid</string>
 
     <string name="row_favorites">Favorites</string>
     <string name="row_projector">Projector</string>
@@ -29,9 +29,36 @@
     <string name="hdmi_sub">Show the device plugged into HDMI</string>
 
     <string name="remote">Remote</string>
-    <string name="remote_on_sub">Open this address on your phone to control the projector</string>
-    <string name="remote_off">Not installed</string>
-    <string name="remote_off_sub">Install UniDroid Remote to control the projector from your phone</string>
+
+    <string name="remote_scan">Scan with your phone</string>
+    <string name="remote_scan_sub">Scan the code with your phone\'s camera, then add the remote to its home screen</string>
+    <string name="remote_tile_sub">Phones using the remote, QR code, Wi-Fi and Bluetooth</string>
+    <string name="remote_unavailable">Remote unavailable</string>
+    <string name="remote_unavailable_sub">The remote server runs as root (Magisk): allow it when Magisk asks</string>
+    <string name="remote_connected">%1$s · connected</string>
+    <string name="remote_seen">%1$s · %2$s</string>
+    <string name="remote_installed">Home screen app</string>
+    <string name="remote_browser">In the browser</string>
+    <string name="remote_devices">Devices</string>
+    <string name="remote_no_device">No phone has opened the remote yet</string>
+    <string name="remote_add">Add a phone</string>
+    <string name="remote_add_help">Scan with the camera (or open %1$s), then Share › Add to Home Screen.</string>
+    <string name="remote_forget">Forget this device</string>
+    <string name="remote_forget_sub">It comes back if it opens the remote again</string>
+    <string name="remote_server">Server</string>
+    <string name="remote_restart">Restart the remote server</string>
+    <string name="remote_server_on">Running on port %1$d</string>
+    <string name="remote_server_off">Not running</string>
+    <string name="remote_starting">Starting the remote…</string>
+    <string name="wifi_line">Wi-Fi %1$s</string>
+    <string name="wifi_off_short">Wi-Fi off</string>
+    <string name="wifi_not_connected">Wi-Fi not connected</string>
+    <string name="bt_on_short">Bluetooth on</string>
+    <string name="bt_off_short">Bluetooth off</string>
+    <plurals name="bt_line_connected">
+        <item quantity="one">Bluetooth · %d connected</item>
+        <item quantity="other">Bluetooth · %d connected</item>
+    </plurals>
 
     <string name="launch_failed">Could not open %1$s</string>
 

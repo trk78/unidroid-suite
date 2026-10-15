@@ -1,4 +1,4 @@
-"""Renders the UniDroid Remote icons (PNG) from the same geometry as module/webroot/icon.svg.
+"""Renders the UniDroid Remote icons (PNG) from the same geometry as assets/remote/icon.svg.
 
     python scripts/make-icons.py        # needs Pillow
 """
@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-OUT = Path(__file__).resolve().parent.parent / "module" / "webroot"
+OUT = Path(__file__).resolve().parent.parent / "assets" / "remote"
 S = 2048                      # supersampled canvas (2x the 1024 SVG grid)
 K = S / 1024
 

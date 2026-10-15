@@ -293,6 +293,17 @@ final class WifiPanel {
 
     // ------------------------------------------------------------------ helpers
 
+    /** One line for tiles and other panels: "Wi-Fi Livebox-5D50", or "Wi-Fi off". */
+    @SuppressWarnings("deprecation")
+    static String summary(Context ctx) {
+        WifiManager w = (WifiManager) ctx.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (w == null || !w.isWifiEnabled()) return ctx.getString(R.string.wifi_off_short);
+        WifiInfo info = w.getConnectionInfo();
+        String ssid = info != null && info.getNetworkId() != -1 ? unquote(info.getSSID()) : null;
+        if (ssid == null || ssid.isEmpty() || "<unknown ssid>".equals(ssid)) return ctx.getString(R.string.wifi_not_connected);
+        return ctx.getString(R.string.wifi_line, ssid);
+    }
+
     @SuppressWarnings("deprecation")
     private Map<String, WifiConfiguration> savedNetworks() {
         Map<String, WifiConfiguration> out = new LinkedHashMap<>();

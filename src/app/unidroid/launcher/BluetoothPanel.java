@@ -189,6 +189,20 @@ final class BluetoothPanel {
 
     // ------------------------------------------------------------------ helpers
 
+    /** One line for tiles and other panels: off, on, or how many devices are connected. */
+    static String summary(Context ctx) {
+        BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
+        if (a == null || !a.isEnabled()) return ctx.getString(R.string.bt_off_short);
+        int connected = 0;
+        try {
+            for (BluetoothDevice d : a.getBondedDevices()) if (isConnected(d)) connected++;
+        } catch (SecurityException ignored) {
+            // No permission: just say it is on.
+        }
+        return connected > 0 ? ctx.getResources().getQuantityString(R.plurals.bt_line_connected, connected, connected)
+                : ctx.getString(R.string.bt_on_short);
+    }
+
     private static boolean isConnected(BluetoothDevice d) {
         try {
             return (Boolean) d.getClass().getMethod("isConnected").invoke(d);

@@ -28,14 +28,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.net.HttpURLConnection;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -48,8 +42,6 @@ import java.util.Set;
  * projection and settings open as side panels ({@link Sheet}) over this screen.
  */
 public final class HomeActivity extends Activity implements SettingsPanel.Host {
-    private static final int REMOTE_PORT = 8080;
-
     private Ui ui;
     private Prefs prefs;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -64,14 +56,29 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     private ScrollView scroll;
     private LinearLayout favoritesRow, projectorRow, appsRow;
     private View projectorSection, appsSection;
-    private TextView remoteValue;
-    private String remoteUrl;
+    private RemoteLink.State remoteState;
+    private QrView remoteQr;
+    private ImageView remoteIcon;
+    private TextView remoteLine1, remoteLine2;
 
     private Sheet sheet;
     private WifiPanel wifiPanel;
     private BluetoothPanel bluetoothPanel;
     private ProjectionPanel projectionPanel;
     private SettingsPanel settingsPanel;
+    private RemotePanel remotePanel;
+
+    /** Keeps the remote server running and the remote tile up to date while home is shown. */
+    private final Runnable remotePoll = new Runnable() {
+        @Override
+        public void run() {
+            RemoteLink.refresh(HomeActivity.this, true, s -> {
+                remoteState = s;
+                renderRemoteTile();
+            });
+            main.postDelayed(this, 5_000);
+        }
+    };
 
     private final Runnable clockTick = new Runnable() {
         @Override
@@ -102,8 +109,13 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         bluetoothPanel = new BluetoothPanel(this, sheet);
         projectionPanel = new ProjectionPanel(this, ui, sheet, root, scroll, prefs);
         settingsPanel = new SettingsPanel(this, sheet, prefs, this);
+        remotePanel = new RemotePanel(this, ui, sheet, wifiPanel, bluetoothPanel, () -> {
+            main.removeCallbacks(remotePoll);
+            remotePoll.run();
+        });
         restyle();
-        if ("keystone".equals(getIntent().getStringExtra("open"))) main.post(projectionPanel::openKeystone);
+        String open = getIntent().getStringExtra("open");
+        if (open != null) main.post(() -> openShortcut(open));
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -118,13 +130,15 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         super.onResume();
         main.removeCallbacks(clockTick);
         clockTick.run();
-        probeRemote();
+        main.removeCallbacks(remotePoll);
+        remotePoll.run();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         main.removeCallbacks(clockTick);
+        main.removeCallbacks(remotePoll);
     }
 
     @Override
@@ -142,17 +156,28 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         for (int i = root.getChildCount() - 1; i >= 0; i--) {
             if (root.getChildAt(i) instanceof KeystoneEditor) ((KeystoneEditor) root.getChildAt(i)).dismiss();
         }
-        String open = intent.getStringExtra("open");
-        if ("apps".equals(open)) {
-            focusFirst(appsRow);
-        } else if ("keystone".equals(open)) {
-            // Shortcut for UniDroid Remote: am start -n app.unidroid.launcher/.HomeActivity --es open keystone
-            projectionPanel.openKeystone();
-        } else {
+        if (!openShortcut(intent.getStringExtra("open"))) {
             // HOME pressed while already home: back to the top.
             scroll.smoothScrollTo(0, 0);
             focusFirst(favoritesRow);
         }
+    }
+
+    /**
+     * Screens other apps (and the remote) can open directly:
+     * am start -n app.unidroid.launcher/.HomeActivity --es open apps|remote|keystone
+     */
+    private boolean openShortcut(String open) {
+        if ("apps".equals(open)) {
+            focusFirst(appsRow);
+        } else if ("remote".equals(open)) {
+            remotePanel.open();
+        } else if ("keystone".equals(open)) {
+            projectionPanel.openKeystone();
+        } else {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -451,15 +476,112 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         return card;
     }
 
+    /**
+     * Remote tile. Until a phone has added the remote to its home screen it shows a QR
+     * code to open it; then it becomes a button with the phone's status, Wi-Fi and
+     * Bluetooth, opening the remote panel.
+     */
     private View remoteTile() {
-        View t = tile(R.drawable.ic_remote, getString(R.string.remote), getString(R.string.remote_off),
-                getString(R.string.remote_off_sub), 0xFF0A84FF, v -> {
-                    if (remoteUrl != null) toast(remoteUrl);
-                    else toast(getString(R.string.remote_off_sub));
-                }, 420);
-        remoteValue = (TextView) t.findViewWithTag("value");
-        if (remoteUrl != null) remoteValue.setText(remoteUrl.substring(7));
+        LinearLayout t = new LinearLayout(this);
+        t.setOrientation(LinearLayout.HORIZONTAL);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        t.setPadding(px(14), px(14), px(24), px(14));
+        GradientDrawable bg = ui.glass(px(22));
+        t.setBackground(bg);
+
+        FrameLayout slot = new FrameLayout(this);
+        remoteQr = new QrView(this);
+        slot.addView(remoteQr, new FrameLayout.LayoutParams(-1, -1));
+        remoteIcon = new ImageView(this);
+        remoteIcon.setImageResource(R.drawable.ic_remote);
+        remoteIcon.setColorFilter(Ui.FG);
+        slot.addView(remoteIcon, new FrameLayout.LayoutParams(px(46), px(46), Gravity.CENTER));
+        LinearLayout.LayoutParams slotLp = new LinearLayout.LayoutParams(px(104), px(104));
+        slotLp.rightMargin = px(20);
+        t.addView(slot, slotLp);
+
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView name = ui.text(24, Ui.FG, Typeface.DEFAULT_BOLD);
+        name.setText(R.string.remote);
+        texts.addView(name);
+        remoteLine1 = ui.text(19, Ui.DIM, Typeface.DEFAULT);
+        remoteLine1.setSingleLine(true);
+        remoteLine1.setEllipsize(TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams l1 = new LinearLayout.LayoutParams(-1, -2);
+        l1.topMargin = px(8);
+        texts.addView(remoteLine1, l1);
+        remoteLine2 = ui.text(19, Ui.DIM, Typeface.DEFAULT);
+        remoteLine2.setSingleLine(true);
+        remoteLine2.setEllipsize(TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams l2 = new LinearLayout.LayoutParams(-1, -2);
+        l2.topMargin = px(4);
+        texts.addView(remoteLine2, l2);
+        t.addView(texts, new LinearLayout.LayoutParams(0, -2, 1));
+
+        t.setLayoutParams(ui.card(480, 132, 30));
+        makeFocusable(t, 1.1f, getString(R.string.kicker_system), getString(R.string.remote), "", 0xFF0A84FF, focused -> {
+            bg.setColor(focused ? Ui.FG : Ui.GLASS);
+            name.setTextColor(focused ? Ui.INK : Ui.FG);
+            remoteLine1.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
+            remoteLine2.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
+            remoteIcon.setColorFilter(focused ? Ui.INK : Ui.FG);
+            if (focused) subtitle.setText(remoteSubtitle());
+        });
+        t.setOnClickListener(v -> remotePanel.open());
+        renderRemoteTile();
         return t;
+    }
+
+    private boolean remoteShowsQr() {
+        return remoteState != null && remoteState.running && !remoteState.anyInstalled();
+    }
+
+    private void renderRemoteTile() {
+        if (remoteQr == null) return;
+        RemoteLink.State s = remoteState;
+        boolean qr = remoteShowsQr();
+        remoteQr.setVisibility(qr ? View.VISIBLE : View.GONE);
+        if (qr) remoteQr.setText(s.url);
+        remoteIcon.setVisibility(qr ? View.GONE : View.VISIBLE);
+        if (s == null) {
+            remoteLine1.setText(R.string.loading);
+            remoteLine2.setText("");
+        } else if (!s.running) {
+            remoteLine1.setText(R.string.remote_unavailable);
+            remoteLine2.setText(R.string.root_needed);
+        } else if (qr) {
+            remoteLine1.setText(R.string.remote_scan);
+            remoteLine2.setText(s.url.substring(7));
+        } else {
+            RemoteLink.Device d = null;
+            for (RemoteLink.Device x : s.devices) {
+                if (x.installed) {
+                    d = x;
+                    break;
+                }
+            }
+            remoteLine1.setText(d.connected ? getString(R.string.remote_connected, d.name)
+                    : getString(R.string.remote_seen, d.name, android.text.format.DateUtils.getRelativeTimeSpanString(
+                            d.seen, System.currentTimeMillis(), android.text.format.DateUtils.MINUTE_IN_MILLIS)));
+            remoteLine2.setText(WifiPanel.summary(this) + " · " + BluetoothPanel.summary(this));
+        }
+        View focus = getCurrentFocus();
+        if (focus != null && isInside(focus, remoteLine1)) {
+            subtitle.setText(remoteSubtitle());
+        }
+    }
+
+    private static boolean isInside(View parent, View child) {
+        for (android.view.ViewParent p = child.getParent(); p != null; p = p.getParent()) {
+            if (p == parent) return true;
+        }
+        return false;
+    }
+
+    private int remoteSubtitle() {
+        if (remoteState != null && !remoteState.running) return R.string.remote_unavailable_sub;
+        return remoteShowsQr() ? R.string.remote_scan_sub : R.string.remote_tile_sub;
     }
 
     private View tile(int icon, String label, String value, String sub, int color, View.OnClickListener click, int width) {
@@ -492,9 +614,6 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
             iv.setColorFilter(focused ? Ui.INK : Ui.FG);
             name.setTextColor(focused ? Ui.INK : Ui.FG);
             if (valueView != null) valueView.setTextColor(focused ? Ui.withAlpha(Ui.INK, 170) : Ui.DIM);
-            if (focused && valueView != null) {
-                subtitle.setText(remoteUrl != null ? R.string.remote_on_sub : R.string.remote_off_sub);
-            }
         });
         t.setOnClickListener(click);
         return t;
@@ -595,43 +714,6 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         clock.setText(new SimpleDateFormat(h24 ? "HH:mm" : "h:mm", Locale.getDefault()).format(now));
         String d = new SimpleDateFormat("EEEE d MMMM", Locale.getDefault()).format(now);
         date.setText(d.isEmpty() ? d : Character.toUpperCase(d.charAt(0)) + d.substring(1));
-    }
-
-    /** Is UniDroid Remote answering on this device? Shows its address when it is. */
-    private void probeRemote() {
-        new Thread(() -> {
-            String url = null;
-            try {
-                HttpURLConnection c = (HttpURLConnection) new URL("http://127.0.0.1:" + REMOTE_PORT + "/info").openConnection();
-                c.setConnectTimeout(600);
-                c.setReadTimeout(600);
-                if (c.getResponseCode() == 200) url = "http://" + lanAddress() + ":" + REMOTE_PORT;
-                c.disconnect();
-            } catch (Exception ignored) {
-                // Not installed or not running.
-            }
-            final String found = url;
-            main.post(() -> {
-                remoteUrl = found;
-                if (remoteValue != null) {
-                    remoteValue.setText(found != null ? found.substring(7) : getString(R.string.remote_off));
-                }
-            });
-        }, "remote-probe").start();
-    }
-
-    private static String lanAddress() {
-        try {
-            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                if (!ni.isUp() || ni.isLoopback()) continue;
-                for (InetAddress addr : Collections.list(ni.getInetAddresses())) {
-                    if (addr instanceof Inet4Address) return addr.getHostAddress();
-                }
-            }
-        } catch (Exception ignored) {
-            // Fall through.
-        }
-        return "127.0.0.1";
     }
 
     private void toast(String msg) {

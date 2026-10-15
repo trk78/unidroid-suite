@@ -27,9 +27,36 @@
     <string name="hdmi_sub">Affiche l\'appareil branché en HDMI</string>
 
     <string name="remote">Télécommande</string>
-    <string name="remote_on_sub">Ouvre cette adresse sur ton téléphone pour piloter le projecteur</string>
-    <string name="remote_off">Non installée</string>
-    <string name="remote_off_sub">Installe UniDroid Remote pour piloter le projecteur depuis ton téléphone</string>
+
+    <string name="remote_scan">Scanne avec ton téléphone</string>
+    <string name="remote_scan_sub">Scanne le code avec l\'appareil photo du téléphone, puis ajoute la télécommande à son écran d\'accueil</string>
+    <string name="remote_tile_sub">Téléphones connectés, QR code, Wi-Fi et Bluetooth</string>
+    <string name="remote_unavailable">Télécommande indisponible</string>
+    <string name="remote_unavailable_sub">Le serveur de la télécommande tourne en root (Magisk) : autorise-le quand Magisk le demande</string>
+    <string name="remote_connected">%1$s · connecté</string>
+    <string name="remote_seen">%1$s · %2$s</string>
+    <string name="remote_installed">App sur l\'écran d\'accueil</string>
+    <string name="remote_browser">Dans le navigateur</string>
+    <string name="remote_devices">Appareils</string>
+    <string name="remote_no_device">Aucun téléphone n\'a encore ouvert la télécommande</string>
+    <string name="remote_add">Ajouter un téléphone</string>
+    <string name="remote_add_help">Scanne avec l\'appareil photo (ou ouvre %1$s), puis Partager › Sur l\'écran d\'accueil.</string>
+    <string name="remote_forget">Oublier cet appareil</string>
+    <string name="remote_forget_sub">Il reviendra s\'il rouvre la télécommande</string>
+    <string name="remote_server">Serveur</string>
+    <string name="remote_restart">Redémarrer le serveur de la télécommande</string>
+    <string name="remote_server_on">Actif sur le port %1$d</string>
+    <string name="remote_server_off">Arrêté</string>
+    <string name="remote_starting">Démarrage de la télécommande…</string>
+    <string name="wifi_line">Wi-Fi %1$s</string>
+    <string name="wifi_off_short">Wi-Fi coupé</string>
+    <string name="wifi_not_connected">Wi-Fi non connecté</string>
+    <string name="bt_on_short">Bluetooth activé</string>
+    <string name="bt_off_short">Bluetooth coupé</string>
+    <plurals name="bt_line_connected">
+        <item quantity="one">Bluetooth · %d connecté</item>
+        <item quantity="other">Bluetooth · %d connectés</item>
+    </plurals>
 
     <string name="launch_failed">Impossible d\'ouvrir %1$s</string>
 

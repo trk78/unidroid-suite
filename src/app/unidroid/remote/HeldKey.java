@@ -1,4 +1,4 @@
-package com.unidroid.remote;
+package app.unidroid.remote;
 
 import android.os.SystemClock;
 import android.view.KeyEvent;

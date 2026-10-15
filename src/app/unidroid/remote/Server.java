@@ -1,4 +1,4 @@
-package com.unidroid.remote;
+package app.unidroid.remote;
 
 import android.os.Build;
 import android.os.Looper;
@@ -8,7 +8,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -19,48 +18,80 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * UniDroid Remote server: serves the web UI and accepts commands over a WebSocket (/ws)
  * or plain HTTP GET (/key, /text, /action). Commands never go through a shell.
  *
- * Usage: CLASSPATH=unidroid-server.jar app_process / com.unidroid.remote.Server [port] [webroot]
+ * Part of UniDroid Suite: the launcher starts it as root from its own APK, which also
+ * holds the web UI (assets/remote/).
+ *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.3.0";
+    static final String VERSION = "0.4.0";
+    private static final String ASSETS = "assets/remote/";
+    private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     private static final String WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_FRAME = 64 * 1024;
 
-    private final File webroot;
+    private final String apk;
+    private final Map<String, byte[]> files;
     private final Injector injector;
     private final Actions actions;
+    private final Devices devices = new Devices(DEVICES);
 
-    private Server(File webroot, Injector injector) {
-        this.webroot = webroot;
+    private Server(String apk, Map<String, byte[]> files, Injector injector) {
+        this.apk = apk;
+        this.files = files;
         this.injector = injector;
         this.actions = new Actions(injector);
     }
 
     public static void main(String[] args) throws Exception {
         int port = args.length > 0 ? Integer.parseInt(args[0]) : 8080;
-        File webroot = new File(args.length > 1 ? args[1] : "webroot").getCanonicalFile();
+        String apk = args.length > 1 ? args[1] : System.getProperty("java.class.path");
         try {
             Looper.prepareMainLooper();
         } catch (Throwable ignored) {
             // Not needed on every Android version.
         }
-        Server server = new Server(webroot, new Injector());
+        Server server = new Server(apk, loadAssets(apk), new Injector());
         ServerSocket socket = new ServerSocket();
         socket.setReuseAddress(true);
         socket.bind(new InetSocketAddress(port));
-        System.out.println("UniDroid Remote " + VERSION + " on :" + port + ", webroot " + webroot);
+        System.out.println("UniDroid Remote " + VERSION + " on :" + port + ", from " + apk);
         while (true) {
             Socket client = socket.accept();
             Thread t = new Thread(() -> server.handle(client), "udr-conn");
             t.setDaemon(true);
             t.start();
         }
+    }
+
+    /** Web UI files, read once from the APK: an app update installs a new APK path anyway. */
+    private static Map<String, byte[]> loadAssets(String apk) throws IOException {
+        Map<String, byte[]> out = new HashMap<>();
+        try (ZipFile zip = new ZipFile(apk)) {
+            Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry e = entries.nextElement();
+                if (e.isDirectory() || !e.getName().startsWith(ASSETS)) continue;
+                try (InputStream in = zip.getInputStream(e)) {
+                    ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                    byte[] chunk = new byte[8192];
+                    int n;
+                    while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+                    out.put(e.getName().substring(ASSETS.length()), buf.toByteArray());
+                }
+            }
+        }
+        return out;
     }
 
     // ---------------------------------------------------------------- HTTP
@@ -100,10 +131,11 @@ public final class Server {
             }
 
             if (path.equals("/ws") && upgrade && wsKey != null) {
-                s.setSoTimeout(60_000); // the client pings every 20 s
+                s.setSoTimeout(60_000); // the client pings every 5 s
                 webSocket(in, out, wsKey);
                 return;
             }
+            boolean local = s.getInetAddress().isLoopbackAddress();
             if (!method.equals("GET") && !method.equals("HEAD")) {
                 respond(out, 405, "text/plain", "method not allowed", false);
                 return;
@@ -137,8 +169,14 @@ public final class Server {
                     break;
                 }
                 case "/info":
-                    respond(out, 200, "application/json", info(), head);
+                    respond(out, 200, "application/json", local ? localInfo() : info(), head);
                     break;
+                case "/forget": {
+                    // Only the launcher, on the device itself, manages the device list.
+                    boolean ok = local && devices.forget(param(query, "id"));
+                    respond(out, ok ? 200 : 400, "text/plain", ok ? "ok" : "no", head);
+                    break;
+                }
                 default:
                     serveFile(out, path, head);
             }
@@ -149,22 +187,13 @@ public final class Server {
 
     private void serveFile(OutputStream out, String path, boolean head) throws IOException {
         if (path.equals("/")) path = "/index.html";
-        if (path.contains("..") || path.indexOf('\0') >= 0) {
-            respond(out, 400, "text/plain", "bad path", head);
-            return;
-        }
-        File f = new File(webroot, URLDecoder.decode(path.substring(1), "UTF-8")).getCanonicalFile();
-        if (!f.getPath().startsWith(webroot.getPath() + File.separator) || !f.isFile()) {
+        String name = URLDecoder.decode(path.substring(1), "UTF-8");
+        byte[] body = files.get(name);
+        if (body == null) {
             respond(out, 404, "text/plain", "not found", head);
             return;
         }
-        ByteArrayOutputStream buf = new ByteArrayOutputStream((int) f.length());
-        try (FileInputStream fin = new FileInputStream(f)) {
-            byte[] chunk = new byte[8192];
-            int n;
-            while ((n = fin.read(chunk)) > 0) buf.write(chunk, 0, n);
-        }
-        respond(out, 200, contentType(f.getName()), buf.toByteArray(), head);
+        respond(out, 200, contentType(name), body, head);
     }
 
     private static String contentType(String name) {
@@ -217,7 +246,13 @@ public final class Server {
                 + "\",\"android\":\"" + json(Build.VERSION.RELEASE) + "\",\"version\":\"" + VERSION + "\"}";
     }
 
-    private static String json(String s) {
+    /** For the launcher (loopback only): also the APK in use and the known devices. */
+    private String localInfo() {
+        String base = info();
+        return base.substring(0, base.length() - 1) + ",\"apk\":\"" + json(apk) + "\",\"devices\":" + devices.json() + "}";
+    }
+
+    static String json(String s) {
         return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
@@ -240,7 +275,8 @@ public final class Server {
     //   d:<key>  key down (auto-repeats while held)    u:<key>  key up
     //   k:<key>  tap (down + up)                       b:<n>    n backspaces
     //   t:<txt>  type text                             p        ping -> "p"
-    //   a:<name> action: settings | apps | launch:<package>
+    //   a:<name> action: settings | apps | keystone | launch:<package>
+    //   h:<id>\t<installed 0|1>\t<name>  first message: who is this page
     // <key> is a keycode number or name (22, DPAD_RIGHT, KEYCODE_DPAD_RIGHT).
 
     private void webSocket(InputStream in, OutputStream out, String key) throws IOException {
@@ -258,6 +294,7 @@ public final class Server {
         sendFrame(out, 0x1, ("i:" + info()).getBytes(StandardCharsets.UTF_8));
 
         HeldKey held = new HeldKey(injector);
+        Devices.Device[] device = new Devices.Device[1];
         try {
             while (true) {
                 int b0 = in.read();
@@ -284,12 +321,22 @@ public final class Server {
                 } else if (opcode == 0x9) {
                     sendFrame(out, 0xA, payload);
                 } else if (opcode == 0x1) {
-                    onMessage(new String(payload, StandardCharsets.UTF_8), held, out);
+                    String msg = new String(payload, StandardCharsets.UTF_8);
+                    if (msg.startsWith("h:") && device[0] == null) device[0] = hello(msg.substring(2));
+                    else onMessage(msg, held, out);
                 }
             }
         } finally {
             held.releaseAll();
+            devices.bye(device[0]);
         }
+    }
+
+    /** h:<id>TAB<1 when opened from the home screen>TAB<name> */
+    private Devices.Device hello(String arg) {
+        String[] p = arg.split("\t", 3);
+        if (p.length < 3) return null;
+        return devices.hello(p[0], p[2], "1".equals(p[1]));
     }
 
     private void onMessage(String msg, HeldKey held, OutputStream out) throws IOException {

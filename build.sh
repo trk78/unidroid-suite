@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UniDroid Launcher - builds build/unidroid-launcher.apk without Gradle.
+# UniDroid Suite - builds build/unidroid.apk (launcher + remote server + web remote) without Gradle.
 # Needs a JDK (11+), the Android SDK (platform + build-tools) and Python 3.
 #   KEYSTORE=... KEY_ALIAS=... KEY_PASS=... ./build.sh   # sign with your own key
 set -euo pipefail
@@ -17,8 +17,8 @@ ANDROID_JAR="$PLATFORM/android.jar"
 KEYSTORE="${KEYSTORE:-$HOME/.android/debug.keystore}"
 KEY_ALIAS="${KEY_ALIAS:-androiddebugkey}"
 KEY_PASS="${KEY_PASS:-android}"
-VERSION_CODE=5
-VERSION_NAME=0.2.3
+VERSION_CODE=6
+VERSION_NAME=0.3.0
 
 OUT="$DIR/build"
 rm -rf "$OUT" && mkdir -p "$OUT/gen" "$OUT/classes"
@@ -30,7 +30,7 @@ echo "==> resources"
 "$(tool aapt2)" link -I "$ANDROID_JAR" --manifest "$DIR/AndroidManifest.xml" \
   --min-sdk-version 21 --target-sdk-version 28 \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
-  --java "$OUT/gen" -o "$OUT/base.apk" "$OUT/res.zip"
+  -A "$DIR/assets" --java "$OUT/gen" -o "$OUT/base.apk" "$OUT/res.zip"
 
 echo "==> java"
 javac --release 11 -Xlint:-options -cp "$ANDROID_JAR" -d "$OUT/classes" \
@@ -46,6 +46,6 @@ PY
 "$(tool zipalign)" -p -f 4 "$OUT/base.apk" "$OUT/aligned.apk"
 "$(tool apksigner)" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" \
   --ks-pass "pass:$KEY_PASS" --key-pass "pass:$KEY_PASS" \
-  --out "$OUT/unidroid-launcher.apk" "$OUT/aligned.apk"
+  --out "$OUT/unidroid.apk" "$OUT/aligned.apk"
 
-echo "Built build/unidroid-launcher.apk ($(du -k "$OUT/unidroid-launcher.apk" | cut -f1) KB)"
+echo "Built build/unidroid.apk ($(du -k "$OUT/unidroid.apk" | cut -f1) KB)"

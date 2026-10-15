@@ -1,4 +1,4 @@
-package com.unidroid.remote;
+package app.unidroid.remote;
 
 import java.util.regex.Pattern;
 
@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
  * process arguments, never through a shell.
  */
 final class Actions {
-    /** UniDroid Launcher, when installed, provides the "apps" screen. */
+    /** The UniDroid app (launcher side) provides the "apps" and "keystone" screens. */
     static final String LAUNCHER = "app.unidroid.launcher";
     private static final Pattern PACKAGE = Pattern.compile("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+");
 
@@ -29,6 +29,9 @@ final class Actions {
             }
             injector.tap(3); // KEYCODE_HOME
             return true;
+        }
+        if (action.equals("keystone")) {
+            return isInstalled(LAUNCHER) && exec("am", "start", "-n", LAUNCHER + "/.HomeActivity", "--es", "open", "keystone");
         }
         if (action.startsWith("launch:")) {
             String pkg = action.substring(7);
