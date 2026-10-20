@@ -35,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.6.0";
+    static final String VERSION = "0.7.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     /** The remote's layout and custom buttons, shared by every phone. */
@@ -55,6 +55,7 @@ public final class Server {
     /** Open WebSockets, to send the browser's state to every phone. */
     private final java.util.List<OutputStream> sockets = new CopyOnWriteArrayList<>();
     private final BrowserRelay browser = new BrowserRelay(this::broadcast);
+    private final TvServer tv = new TvServer();
 
     private Server(String apk, Map<String, byte[]> files, Injector injector) {
         this.apk = apk;
@@ -195,6 +196,13 @@ public final class Server {
                     else respondCached(out, "image/png", png, head);
                     break;
                 }
+                case "/tv": {
+                    // Picture and projection settings, for the launcher's panels (loopback only):
+                    // /tv?t=<type>[&v=<value>], type = picture setting number or "mirror".
+                    String body = local ? tv(param(query, "t"), param(query, "v")) : null;
+                    respond(out, body != null ? 200 : 400, "text/plain", body != null ? body : "no", head);
+                    break;
+                }
                 case "/forget": {
                     // Only the launcher, on the device itself, manages the device list.
                     boolean ok = local && devices.forget(param(query, "id"));
@@ -231,6 +239,28 @@ public final class Server {
             case "svg": return "image/svg+xml";
             case "png": return "image/png";
             default: return "application/octet-stream";
+        }
+    }
+
+    /** Reads or writes one setting; returns its value, or null when invalid or failed. */
+    private String tv(String type, String value) {
+        try {
+            if ("mirror".equals(type)) {
+                if (value == null) return String.valueOf(tv.getMirror());
+                int v = Integer.parseInt(value);
+                if (v < 0 || v > 3) return null;
+                tv.setMirror(v);
+                return String.valueOf(v);
+            }
+            int t = Integer.parseInt(type);
+            if (!TvServer.isPicture(t)) return null;
+            if (value == null) return String.valueOf(tv.getPicture(t));
+            int v = Integer.parseInt(value);
+            if (v < 0 || v > TvServer.max(t)) return null;
+            tv.setPicture(t, v);
+            return String.valueOf(v);
+        } catch (Exception e) {
+            return null;
         }
     }
 

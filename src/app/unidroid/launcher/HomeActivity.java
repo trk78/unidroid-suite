@@ -75,6 +75,8 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     private ProjectionPanel projectionPanel;
     private SettingsPanel settingsPanel;
     private RemotePanel remotePanel;
+    private PicturePanel picturePanel;
+    private SoundPanel soundPanel;
 
     /** Keeps the remote server running and the remote tile up to date while home is shown. */
     private final Runnable remotePoll = new Runnable() {
@@ -117,6 +119,8 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         bluetoothPanel = new BluetoothPanel(this, sheet);
         projectionPanel = new ProjectionPanel(this, ui, sheet, root, scroll, prefs);
         settingsPanel = new SettingsPanel(this, sheet, prefs, this);
+        picturePanel = new PicturePanel(this, sheet);
+        soundPanel = new SoundPanel(this, sheet, bluetoothPanel);
         remotePanel = new RemotePanel(this, ui, sheet, () -> {
             main.removeCallbacks(remotePoll);
             remotePoll.run();
@@ -174,7 +178,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     /**
      * Screens other apps (and the remote) can open directly:
      * am start -n app.unidroid.launcher/.HomeActivity --es open
-     * apps|remote|keystone|projection|wifi|bluetooth|settings
+     * apps|remote|keystone|projection|wifi|bluetooth|settings|picture|sound|about
      */
     private boolean openShortcut(String open) {
         if ("apps".equals(open)) {
@@ -191,6 +195,12 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
             bluetoothPanel.open();
         } else if ("settings".equals(open)) {
             settingsPanel.open();
+        } else if ("picture".equals(open)) {
+            picturePanel.open();
+        } else if ("sound".equals(open)) {
+            soundPanel.open();
+        } else if ("about".equals(open)) {
+            new AboutPanel(this, sheet).open();
         } else {
             return false;
         }
@@ -435,6 +445,10 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         projectorRow.removeAllViews();
         projectorRow.addView(tile(R.drawable.ic_projector, getString(R.string.projection), null, getString(R.string.projection_sub),
                 0xFF8F6BFF, v -> projectionPanel.open(), 220));
+        projectorRow.addView(tile(R.drawable.ic_image, getString(R.string.picture), null, getString(R.string.picture_sub),
+                0xFFFFB020, v -> picturePanel.open(), 220));
+        projectorRow.addView(tile(R.drawable.ic_sound, getString(R.string.sound), null, getString(R.string.sound_sub),
+                0xFF30D158, v -> soundPanel.open(), 220));
         if (ProjectionPanel.hasHdmi(this)) {
             projectorRow.addView(tile(R.drawable.ic_hdmi, getString(R.string.hdmi), null, getString(R.string.hdmi_sub),
                     0xFFFF9F43, v -> ProjectionPanel.openHdmi(this), 220));

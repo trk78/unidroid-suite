@@ -82,7 +82,7 @@ final class SettingsPanel {
         sheet.section(act.getString(R.string.system));
         sheet.item(R.drawable.ic_settings, act.getString(R.string.settings), act.getString(R.string.settings_sub),
                 v -> host.start(new Intent(Settings.ACTION_SETTINGS), act.getString(R.string.settings)));
-        sheet.item(0, act.getString(R.string.about), act.getString(R.string.about_sub, version()), null);
+        sheet.item(0, act.getString(R.string.about), act.getString(R.string.about_sub, version(act)), v -> new AboutPanel(act, sheet).open());
     }
 
     private void hiddenApps() {
@@ -159,7 +159,7 @@ final class SettingsPanel {
         }
     }
 
-    private String version() {
+    static String version(android.content.Context act) {
         try {
             return act.getPackageManager().getPackageInfo(act.getPackageName(), 0).versionName;
         } catch (PackageManager.NameNotFoundException e) {

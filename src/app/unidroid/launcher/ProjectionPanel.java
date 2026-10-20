@@ -8,8 +8,9 @@ import android.widget.FrameLayout;
 import android.widget.Toast;
 
 /**
- * Native projector panel: keystone (full-screen {@link KeystoneEditor}, needs root),
- * HDMI input, and the vendor screen for what is not mapped yet (projection mode, zoom).
+ * Native projector panel: keystone (full-screen {@link KeystoneEditor}), projection mode
+ * (front, rear, ceiling: the panel mirror of the vendor service), zoom, HDMI input, and
+ * the vendor screen as a fallback. Needs root.
  */
 final class ProjectionPanel {
     private static final int COLOR = 0xFF8F6BFF;
@@ -60,20 +61,58 @@ final class ProjectionPanel {
 
     void open() {
         sheet.open(R.drawable.ic_projector, act.getString(R.string.projection), act.getString(R.string.projection_sub), COLOR, null);
+        sheet.note(act.getString(R.string.loading));
+        Tv.read(new String[] {Tv.MIRROR}, v -> {
+            if (sheet.isOpen()) render(v[0]);
+        });
+    }
+
+    private void render(int mirror) {
+        sheet.clear();
         sheet.section(act.getString(R.string.keystone));
         sheet.item(R.drawable.ic_projector, act.getString(R.string.keystone_manual), act.getString(R.string.keystone_manual_sub), v -> {
             sheet.close();
             openKeystone();
         });
         sheet.item(0, act.getString(R.string.keystone_reset), act.getString(R.string.keystone_reset_sub), v ->
-                Root.run("service call SurfaceFlinger 1050 f 0 f 0 f 0 f 0 f 0 f 0 f 0 f 0", (ok, out) ->
-                        Toast.makeText(act, act.getString(ok ? R.string.keystone_reset_done : R.string.root_needed), Toast.LENGTH_SHORT).show()));
+                Root.run("service call SurfaceFlinger 1050 f 0 f 0 f 0 f 0 f 0 f 0 f 0 f 0", (ok, out) -> {
+                    if (ok) prefs.setZoom(100); // the reset also undoes the zoom
+                    Toast.makeText(act, act.getString(ok ? R.string.keystone_reset_done : R.string.root_needed), Toast.LENGTH_SHORT).show();
+                }));
+
+        sheet.section(act.getString(R.string.projected_image));
+        if (mirror >= 0) {
+            String[] modes = {act.getString(R.string.mode_front), act.getString(R.string.mode_rear),
+                    act.getString(R.string.mode_ceiling), act.getString(R.string.mode_rear_ceiling)};
+            sheet.choice(0, act.getString(R.string.projection_mode), modes, Math.min(3, mirror), i -> Tv.write(Tv.MIRROR, i));
+        }
+        String[] zooms = new String[11];
+        for (int i = 0; i < zooms.length; i++) zooms[i] = (100 - i * 2) + " %";
+        sheet.slider(0, act.getString(R.string.zoom), zooms, (100 - prefs.zoom()) / 2, i -> applyZoom(100 - i * 2))
+                .value(act.getString(R.string.zoom_sub));
+
         if (hasHdmi(act)) {
             sheet.section(act.getString(R.string.source));
             sheet.item(R.drawable.ic_hdmi, act.getString(R.string.hdmi), act.getString(R.string.hdmi_sub), v -> openHdmi(act));
         }
         vendorRows();
         sheet.focus();
+    }
+
+    /**
+     * Zoom shrinks the picture evenly: every keystone corner moves in by the same share of
+     * the screen, on top of the keystone (the previous zoom is taken off first). Values are
+     * thousandths of the screen, as SurfaceFlinger keeps them in persist.display.keystone_*.
+     */
+    private void applyZoom(int percent) {
+        int delta = (prefs.zoom() - percent) * 5;
+        prefs.setZoom(percent);
+        Root.run("d=" + delta + "; a=''; for k in lbx lby ltx lty rtx rty rbx rby; do"
+                + " v=$(getprop persist.display.keystone_$k); n=$(( ${v:-0} + d ));"
+                + " [ $n -lt 0 ] && n=0; [ $n -gt 500 ] && n=500; a=\"$a f $(printf '0.%03d' $n)\"; done;"
+                + " service call SurfaceFlinger 1050 $a", (ok, out) -> {
+                    if (!ok) Toast.makeText(act, act.getString(R.string.root_needed), Toast.LENGTH_SHORT).show();
+                });
     }
 
     void openKeystone() {

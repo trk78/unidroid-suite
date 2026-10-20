@@ -262,9 +262,19 @@ final class Sheet {
 
     /** A row that cycles through options with OK, Left and Right. */
     Row choice(int icon, String label, String[] options, int index, Choice pick) {
+        return choice(icon, label, options, index, pick, true);
+    }
+
+    /** A level (volume, brightness…): Left and Right stop at the ends instead of wrapping around. */
+    Row slider(int icon, String label, String[] options, int index, Choice pick) {
+        return choice(icon, label, options, index, pick, false);
+    }
+
+    private Row choice(int icon, String label, String[] options, int index, Choice pick, boolean wrap) {
         final int[] at = {Math.max(0, Math.min(index, options.length - 1))};
         final Row[] holder = new Row[1];
         Row r = item(icon, label, null, v -> {
+            if (!wrap && at[0] == options.length - 1) return;
             at[0] = (at[0] + 1) % options.length;
             holder[0].trailing("‹ " + options[at[0]] + " ›");
             pick.picked(at[0]);
@@ -275,7 +285,9 @@ final class Sheet {
             if (e.getAction() != KeyEvent.ACTION_DOWN) return false;
             int step = keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ? 1 : keyCode == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 0;
             if (step == 0) return false;
-            at[0] = (at[0] + step + options.length) % options.length;
+            int next = at[0] + step;
+            if (!wrap && (next < 0 || next >= options.length)) return true;
+            at[0] = (next + options.length) % options.length;
             r.trailing("‹ " + options[at[0]] + " ›");
             pick.picked(at[0]);
             return true;

@@ -13,7 +13,7 @@ final class Actions {
     private static final Pattern PACKAGE = Pattern.compile("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z0-9_]+)+");
     /** Launcher screens a custom button can open. */
     private static final java.util.Set<String> SCREENS = new java.util.HashSet<>(java.util.Arrays.asList(
-            "apps", "remote", "keystone", "projection", "wifi", "bluetooth", "settings"));
+            "apps", "remote", "keystone", "projection", "wifi", "bluetooth", "settings", "picture", "sound", "about"));
     private static final Pattern URL = Pattern.compile("https?://[^\\s]{1,2000}");
     private static final String[] HDMI = {"com.softwinner.awlivetv/.MainActivity", "com.softwinner.awsource/.MainActivity"};
 

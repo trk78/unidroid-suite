@@ -107,4 +107,13 @@ final class Prefs {
         List<String> l = Arrays.asList(values);
         return Math.max(0, l.indexOf(v));
     }
+
+    /** Picture zoom in percent (100 = none), applied on top of the keystone. */
+    int zoom() {
+        return sp.getInt("zoom", 100);
+    }
+
+    void setZoom(int percent) {
+        sp.edit().putInt("zoom", percent).apply();
+    }
 }

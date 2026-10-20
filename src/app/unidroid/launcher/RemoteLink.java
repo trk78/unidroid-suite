@@ -140,7 +140,8 @@ final class RemoteLink {
         return s;
     }
 
-    private static String get(String path) {
+    /** Blocking GET on the local remote server; null when it fails. Never on the main thread. */
+    static String get(String path) {
         try {
             HttpURLConnection c = (HttpURLConnection) new URL("http://127.0.0.1:" + PORT + path).openConnection();
             c.setConnectTimeout(600);
