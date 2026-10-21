@@ -53,9 +53,6 @@ final class RemotePanel {
         sheet.custom(box);
         sheet.note(act.getString(R.string.remote_add_help, s.url.substring(7)));
 
-        sheet.section(act.getString(R.string.remote_security));
-        sheet.item(0, act.getString(R.string.pin), act.getString(s.pin ? R.string.pin_on : R.string.pin_off), v -> editPin(s.pin));
-
         sheet.section(act.getString(R.string.remote_server));
         sheet.item(0, act.getString(R.string.remote_restart),
                 s.running ? act.getString(R.string.remote_server_on, RemoteLink.PORT) : act.getString(R.string.remote_server_off), v -> {
@@ -64,36 +61,6 @@ final class RemotePanel {
                 });
         if (focused >= 0) sheet.focusAt(focused);
         else sheet.focus();
-    }
-
-    /** Four digits picked with Left / Right: easy with the TV remote, no keyboard needed. */
-    private void editPin(boolean isSet) {
-        sheet.clear();
-        sheet.section(act.getString(R.string.pin));
-        sheet.note(act.getString(R.string.pin_help));
-        String[] digits = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-        int[] pin = new int[4];
-        java.util.Random r = new java.util.Random();
-        for (int i = 0; i < pin.length; i++) {
-            pin[i] = r.nextInt(10);
-            final int at = i;
-            sheet.choice(0, act.getString(R.string.pin_digit, i + 1), digits, pin[i], d -> pin[at] = d);
-        }
-        sheet.item(0, act.getString(R.string.pin_save), null, v -> {
-            StringBuilder code = new StringBuilder();
-            for (int d : pin) code.append(d);
-            RemoteLink.call("/pin?set=" + code);
-            Toast.makeText(act, act.getString(R.string.pin_saved, code), Toast.LENGTH_LONG).show();
-            sheet.close();
-        });
-        if (isSet) {
-            sheet.item(0, act.getString(R.string.pin_remove), act.getString(R.string.pin_remove_sub), v -> {
-                RemoteLink.call("/pin?clear=1");
-                sheet.close();
-            });
-        }
-        sheet.item(0, act.getString(R.string.cancel), null, v -> open());
-        sheet.focus();
     }
 
     private String describe(RemoteLink.Device d) {

@@ -43,7 +43,7 @@
     <string name="remote_add_help">Scan with the camera (or open %1$s), then Share › Add to Home Screen.</string>
     <string name="remote_forget">Forget this device</string>
     <string name="remote_forget_short">Forget</string>
-    <string name="remote_forget_sub">It comes back if it opens the remote again</string>
+    <string name="remote_forget_sub">It will have to pair again with a code shown on the TV</string>
     <string name="remote_server">Server</string>
     <string name="remote_restart">Restart the remote server</string>
     <string name="remote_server_on">Running on port %1$d</string>
@@ -137,7 +137,7 @@
 
     <!-- Launcher settings -->
     <string name="settings_launcher">Settings</string>
-    <string name="settings_launcher_sub">Look of the home screen and Android settings</string>
+    <string name="settings_launcher_sub">Projector, network, home screen and system</string>
     <string name="look">Look</string>
     <string name="wallpaper">Background</string>
     <string name="wallpaper_dynamic">App colour</string>
@@ -165,7 +165,7 @@
     <string name="unhide">Show again</string>
     <string name="system">System</string>
     <string name="about">About</string>
-    <string name="about_sub">UniDroid Launcher %1$s · free and open source (MIT)</string>
+    <string name="about_sub">UniDroid %1$s · free and open source (MIT)</string>
 
     <!-- App menu -->
     <string name="menu_open">Open</string>
@@ -232,17 +232,52 @@
     <string name="auto_hdmi">Switch to HDMI automatically</string>
     <string name="auto_hdmi_sub">When the HDMI device wakes up (Apple TV, console…)</string>
     <string name="sleep_timer">Sleep timer</string>
-    <string name="sleep_in">Sleep in</string>
     <string name="minutes">%1$d min</string>
     <string name="sleep_at">The projector sleeps at %1$s</string>
-    <string name="remote_security">Security</string>
-    <string name="pin">PIN code</string>
-    <string name="pin_on">On: a new phone must enter it once</string>
-    <string name="pin_off">Off: any phone on your Wi-Fi can control the projector</string>
-    <string name="pin_help">Pick 4 digits with Left and Right. Every phone will ask for it once.</string>
-    <string name="pin_digit">Digit %1$d</string>
-    <string name="pin_save">Turn on this PIN</string>
-    <string name="pin_saved">PIN %1$s on: enter it on each phone</string>
-    <string name="pin_remove">Turn the PIN off</string>
-    <string name="pin_remove_sub">Any phone on your Wi-Fi can control the projector again</string>
+
+    <!-- Pairing -->
+    <string name="pair_title">Pair a phone</string>
+    <string name="pair_from">%1$s wants to use the remote</string>
+    <string name="pair_help">Type this code on the phone</string>
+
+    <!-- Settings categories -->
+    <string name="cat_projector">Projector</string>
+    <string name="cat_network">Network</string>
+    <string name="cat_home">Home screen</string>
+    <string name="look_sub">Background, colours, rows and hidden apps</string>
+
+    <!-- Home look -->
+    <string name="background">Background</string>
+    <string name="background_style">Style</string>
+    <string name="background_style_sub">Aurora and Nebula move slowly</string>
+    <string name="bg_glow">App glow</string>
+    <string name="bg_aurora">Aurora</string>
+    <string name="bg_nebula">Nebula</string>
+    <string name="bg_gradient">Gradient</string>
+    <string name="bg_halo">Halo</string>
+    <string name="bg_plain">Black</string>
+    <string name="background_colors">Colours</string>
+    <string name="pal_accent">Accent</string>
+    <string name="pal_ocean">Ocean</string>
+    <string name="pal_dusk">Dusk</string>
+    <string name="pal_ember">Ember</string>
+    <string name="pal_forest">Forest</string>
+    <string name="pal_lavender">Lavender</string>
+    <string name="clock_section">Clock</string>
+    <string name="clock_style">Style</string>
+    <string name="clock_thin">Large</string>
+    <string name="clock_bold">Bold</string>
+    <string name="clock_compact">Small</string>
+    <string name="clock_hidden">Hidden</string>
+    <string name="row_order">Row order</string>
+    <string name="row_order_sub">Favorites, UniDroid and All apps in the order you like</string>
+    <string name="row_move_sub">OK moves it up</string>
+    <string name="app_sort">Order</string>
+    <string name="app_sort_sub">Custom: hold OK on an app, then Move</string>
+    <string name="sort_alpha">By name</string>
+    <string name="sort_custom">Custom</string>
+    <string name="icon_size">Icon size</string>
+    <string name="show_names">App names</string>
+    <string name="menu_apps_left">Move left in All apps</string>
+    <string name="menu_apps_right">Move right in All apps</string>
 </resources>

@@ -29,7 +29,7 @@ remote server and shows a QR code until a phone has added the remote to its home
 | ⚡ **Light** | Plain Android views, no AndroidX, no Gradle: opens instantly on 1 GB devices |
 | ⭐ **Favorites** | Big 16:9 app banners, three sizes. Hold OK on any app for its menu: pin, move, hide, app info, uninstall |
 | 🎨 **Customizable** | Background (app colour, accent, plain black), six accent colours, clock on/off, rows on/off, hidden apps |
-| 🪟 **Native panels** | Wi-Fi (scan, connect, forget), Bluetooth (pair, connect, forget), projection and remote open as side panels |
+| 🪟 **Native panels** | One Settings menu by category: projector (keystone, projection mode, zoom, picture, sound), network (Wi-Fi, Bluetooth), home screen, system (sleep timer, about) |
 | 📐 **Keystone** | Full-screen editor: OK picks a corner, arrows move it (faster while held), hold OK to reset (rooted Allwinner H713 projectors) |
 | 🌐 **Remote-driven browser** | The projector shows only the page and a pointer; address bar, tabs, bookmarks, back/forward, zoom and desktop/mobile mode are on the phone; Back on the TV remote leaves it |
 | 🌍 **English and French** | Follows the device language |
@@ -39,7 +39,9 @@ remote server and shows a QR code until a phone has added the remote to its home
 | | |
 |---|---|
 | 🖱️ **Track pad for the web** | In the Web tab: slide to move the pointer, tap to click, two fingers or the side strip to scroll, the phone keyboard types into the page |
-| 🎛️ **Customizable remote** | Tap the status pill: reorder or hide blocks, add custom buttons (projector apps with their icon, UniDroid screens, Android keys, web links), turn haptics off. The layout is stored on the projector, shared by every phone |
+| 🎛️ **Customizable remote** | A grid of tiles like iOS Control Center: tap the status pill to edit, drag to move, − to remove, the corner handle to resize, and add controls (projector apps, screens, keys, links, sleep timer, mouse). The layout is stored on the projector, shared by every phone |
+| 🔐 **Pairing** | A new phone types a 4-digit code shown on the TV, once; only paired phones can control the projector |
+| 🖱️ **Mouse mode** | A virtual mouse (Android's hid tool) gives the native pointer, clicks and scrolling in every app |
 | 📷 **QR code on the TV** | Scan it with the phone camera; once the remote is on the phone's home screen, the tile shows the phone and when it was last seen instead |
 | ⚡ **Instant** | 6–8 ms per key press over Wi-Fi: one persistent process injects keys, nothing is spawned per press |
 | 🎯 **Apple TV-style touch pad** | Tap an edge for a direction, swipe to scroll fast, hold to repeat |
@@ -198,7 +200,6 @@ Issues and pull requests are welcome: [open an issue](https://github.com/trk78/u
 Open ideas:
 - projection mode (front, rear, ceiling) and zoom without the vendor screen;
 - keystone and app shortcuts on the phone remote;
-- optional PIN for shared networks;
 - custom remote buttons configured from the TV;
 - a signed APK in GitHub Releases, so no JDK or SDK is needed.
 

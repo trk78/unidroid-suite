@@ -13,7 +13,11 @@ final class Prefs {
     static final String WALLPAPER_DYNAMIC = "dynamic";
     static final String WALLPAPER_ACCENT = "accent";
     static final String WALLPAPER_PLAIN = "plain";
-    static final String[] WALLPAPERS = {WALLPAPER_DYNAMIC, WALLPAPER_ACCENT, WALLPAPER_PLAIN};
+    static final String[] WALLPAPERS = Backdrop.STYLES;
+
+    static final String[] CLOCKS = {"thin", "bold", "compact", "hidden"};
+    static final String[] ROWS = {"favorites", "projector", "apps"};
+    static final String[] SORTS = {"alpha", "custom"};
 
     static final int[] ACCENTS = {0xFF6AA8FF, 0xFF8F6BFF, 0xFFFF6B9A, 0xFFFF9F43, 0xFF3DDC84, 0xFF2ED3C6};
 
@@ -115,5 +119,99 @@ final class Prefs {
 
     void setZoom(int percent) {
         sp.edit().putInt("zoom", percent).apply();
+    }
+
+    String palette() {
+        return sp.getString("palette", "accent");
+    }
+
+    void setPalette(String v) {
+        sp.edit().putString("palette", v).apply();
+    }
+
+    /** thin, bold, compact or hidden (the old on/off switch maps to thin / hidden). */
+    String clockStyle() {
+        return sp.getString("clock", sp.getBoolean("show_clock", true) ? "thin" : "hidden");
+    }
+
+    void setClockStyle(String v) {
+        sp.edit().putString("clock", v).apply();
+    }
+
+    /** Order of the home rows, as ROWS names. */
+    List<String> rowOrder() {
+        List<String> out = new ArrayList<>();
+        for (String r : sp.getString("row_order", String.join(",", ROWS)).split(",")) {
+            if (Arrays.asList(ROWS).contains(r) && !out.contains(r)) out.add(r);
+        }
+        for (String r : ROWS) if (!out.contains(r)) out.add(r);
+        return out;
+    }
+
+    void moveRow(String row, int delta) {
+        List<String> order = rowOrder();
+        int from = order.indexOf(row), to = from + delta;
+        if (from < 0 || to < 0 || to >= order.size()) return;
+        java.util.Collections.swap(order, from, to);
+        sp.edit().putString("row_order", String.join(",", order)).apply();
+    }
+
+    /** alpha, or custom (the order set with Move in the app menu). */
+    String appSort() {
+        return sp.getString("app_sort", "alpha");
+    }
+
+    void setAppSort(String v) {
+        sp.edit().putString("app_sort", v).apply();
+    }
+
+    /** Puts apps in the saved custom order; apps not in it yet keep their name order at the end. */
+    List<AppRepo.App> sortApps(List<AppRepo.App> apps) {
+        if (!"custom".equals(appSort())) return apps;
+        List<String> order = Arrays.asList(sp.getString("app_order", "").split(","));
+        List<AppRepo.App> out = new ArrayList<>(apps);
+        java.util.Collections.sort(out, (a, b) -> {
+            int ia = order.indexOf(a.pkg()), ib = order.indexOf(b.pkg());
+            if (ia < 0 && ib < 0) return 0;
+            if (ia < 0) return 1;
+            if (ib < 0) return -1;
+            return Integer.compare(ia, ib);
+        });
+        return out;
+    }
+
+    /** Moves an app one place in the custom order of All apps. */
+    void moveApp(List<AppRepo.App> shown, AppRepo.App app, int delta) {
+        List<String> order = new ArrayList<>();
+        for (AppRepo.App a : shown) order.add(a.pkg());
+        int from = order.indexOf(app.pkg()), to = from + delta;
+        if (from < 0 || to < 0 || to >= order.size()) return;
+        java.util.Collections.swap(order, from, to);
+        sp.edit().putString("app_order", String.join(",", order)).putString("app_sort", "custom").apply();
+    }
+
+    boolean showNames() {
+        return sp.getBoolean("show_names", true);
+    }
+
+    void setShowNames(boolean v) {
+        sp.edit().putBoolean("show_names", v).apply();
+    }
+
+    String iconSize() {
+        return sp.getString("icon_size", SIZE_NORMAL);
+    }
+
+    void setIconSize(String v) {
+        sp.edit().putString("icon_size", v).apply();
+    }
+
+    /** All-apps tile, icon and column width, in design units. */
+    int[] iconBox() {
+        switch (iconSize()) {
+            case SIZE_COMPACT: return new int[] {104, 66, 140};
+            case SIZE_LARGE: return new int[] {160, 102, 200};
+            default: return new int[] {132, 84, 170};
+        }
     }
 }

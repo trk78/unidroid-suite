@@ -11,7 +11,11 @@ import android.widget.Toast;
 import java.util.List;
 import java.util.Set;
 
-/** Launcher settings (look, rows, hidden apps) and the per-app menu opened by holding OK. */
+/**
+ * Settings, by category: projector (projection, picture, sound), network (Wi-Fi,
+ * Bluetooth), home screen (look, rows, hidden apps) and system (sleep timer, Android
+ * settings, about). Also the per-app menu opened by holding OK.
+ */
 final class SettingsPanel {
     interface Host {
         /** Re-applies colours, sizes and visible rows. */
@@ -20,7 +24,12 @@ final class SettingsPanel {
         List<AppRepo.App> apps();
 
         void start(Intent intent, String label);
+
+        /** Opens another panel: projection, picture, sound, wifi, bluetooth. */
+        void openPanel(String name);
     }
+
+    private static final int[] SLEEP_MINUTES = {0, 15, 30, 45, 60, 90, 120};
 
     private final Activity act;
     private final Sheet sheet;
@@ -44,10 +53,54 @@ final class SettingsPanel {
 
     private void render() {
         sheet.clear();
-        sheet.section(act.getString(R.string.look));
-        sheet.choice(0, act.getString(R.string.wallpaper), strings(R.string.wallpaper_dynamic, R.string.wallpaper_accent, R.string.wallpaper_plain),
+        sheet.section(act.getString(R.string.cat_projector));
+        sheet.item(R.drawable.ic_projector, act.getString(R.string.projection), act.getString(R.string.projection_sub), v -> host.openPanel("projection"));
+        sheet.item(R.drawable.ic_image, act.getString(R.string.picture), act.getString(R.string.picture_sub), v -> host.openPanel("picture"));
+        sheet.item(R.drawable.ic_sound, act.getString(R.string.sound), act.getString(R.string.sound_sub), v -> host.openPanel("sound"));
+
+        sheet.section(act.getString(R.string.cat_network));
+        sheet.item(R.drawable.ic_wifi, act.getString(R.string.wifi), WifiPanel.summary(act), v -> host.openPanel("wifi"));
+        sheet.item(R.drawable.ic_bluetooth, act.getString(R.string.bluetooth), BluetoothPanel.summary(act), v -> host.openPanel("bluetooth"));
+
+        sheet.section(act.getString(R.string.cat_home));
+        sheet.item(R.drawable.ic_settings, act.getString(R.string.look), act.getString(R.string.look_sub), v -> {
+            appearance();
+            sheet.focus();
+        });
+
+        sheet.section(act.getString(R.string.system));
+        String[] labels = new String[SLEEP_MINUTES.length];
+        labels[0] = act.getString(R.string.off);
+        for (int i = 1; i < labels.length; i++) labels[i] = act.getString(R.string.minutes, SLEEP_MINUTES[i]);
+        Sheet.Row timer = sheet.choice(0, act.getString(R.string.sleep_timer), labels, 0,
+                i -> RemoteLink.call("/action?a=sleep:" + SLEEP_MINUTES[i]));
+        RemoteLink.refresh(act, false, s -> {
+            if (s.sleepAt > 0) timer.value(act.getString(R.string.sleep_at,
+                    android.text.format.DateFormat.getTimeFormat(act).format(new java.util.Date(s.sleepAt))));
+        });
+        sheet.item(R.drawable.ic_settings, act.getString(R.string.settings), act.getString(R.string.settings_sub),
+                v -> host.start(new Intent(Settings.ACTION_SETTINGS), act.getString(R.string.settings)));
+        sheet.item(0, act.getString(R.string.about), act.getString(R.string.about_sub, version(act)), v -> new AboutPanel(act, sheet).open());
+    }
+
+    /** Home screen look, rows and hidden apps. */
+    private void appearance() {
+        sheet.clear();
+        sheet.item(0, "\u2039 " + act.getString(R.string.back), null, v -> {
+            render();
+            sheet.focus();
+        });
+        sheet.section(act.getString(R.string.background));
+        sheet.choice(0, act.getString(R.string.background_style), strings(R.string.bg_glow, R.string.bg_aurora, R.string.bg_nebula,
+                R.string.bg_gradient, R.string.bg_halo, R.string.bg_plain),
                 Prefs.indexOf(Prefs.WALLPAPERS, prefs.wallpaper()), i -> {
                     prefs.setWallpaper(Prefs.WALLPAPERS[i]);
+                    host.restyle();
+                }).value(act.getString(R.string.background_style_sub));
+        sheet.choice(0, act.getString(R.string.background_colors), strings(R.string.pal_accent, R.string.pal_ocean, R.string.pal_dusk,
+                R.string.pal_ember, R.string.pal_forest, R.string.pal_lavender),
+                Prefs.indexOf(Backdrop.PALETTES, prefs.palette()), i -> {
+                    prefs.setPalette(Backdrop.PALETTES[i]);
                     host.restyle();
                 });
         String[] accents = strings(R.string.accent_blue, R.string.accent_violet, R.string.accent_pink,
@@ -56,15 +109,13 @@ final class SettingsPanel {
             prefs.setAccent(Prefs.ACCENTS[i]);
             host.restyle();
         });
-        sheet.choice(0, act.getString(R.string.card_size), strings(R.string.size_compact, R.string.size_normal, R.string.size_large),
-                Prefs.indexOf(Prefs.SIZES, prefs.cardSize()), i -> {
-                    prefs.setCardSize(Prefs.SIZES[i]);
+
+        sheet.section(act.getString(R.string.clock_section));
+        sheet.choice(0, act.getString(R.string.clock_style), strings(R.string.clock_thin, R.string.clock_bold, R.string.clock_compact, R.string.clock_hidden),
+                Prefs.indexOf(Prefs.CLOCKS, prefs.clockStyle()), i -> {
+                    prefs.setClockStyle(Prefs.CLOCKS[i]);
                     host.restyle();
                 });
-        sheet.toggle(0, act.getString(R.string.show_clock), null, prefs.showClock(), on -> {
-            prefs.setShowClock(on);
-            host.restyle();
-        });
 
         sheet.section(act.getString(R.string.home_rows));
         sheet.toggle(0, act.getString(R.string.row_projector), null, prefs.showProjector(), on -> {
@@ -75,14 +126,58 @@ final class SettingsPanel {
             prefs.setShowApps(on);
             host.restyle();
         });
+        sheet.item(0, act.getString(R.string.row_order), act.getString(R.string.row_order_sub), v -> rowOrder());
+
+        sheet.section(act.getString(R.string.row_favorites));
+        sheet.choice(0, act.getString(R.string.card_size), strings(R.string.size_compact, R.string.size_normal, R.string.size_large),
+                Prefs.indexOf(Prefs.SIZES, prefs.cardSize()), i -> {
+                    prefs.setCardSize(Prefs.SIZES[i]);
+                    host.restyle();
+                });
+
+        sheet.section(act.getString(R.string.row_apps));
+        sheet.choice(0, act.getString(R.string.app_sort), strings(R.string.sort_alpha, R.string.sort_custom),
+                Prefs.indexOf(Prefs.SORTS, prefs.appSort()), i -> {
+                    prefs.setAppSort(Prefs.SORTS[i]);
+                    host.restyle();
+                }).value(act.getString(R.string.app_sort_sub));
+        sheet.choice(0, act.getString(R.string.icon_size), strings(R.string.size_compact, R.string.size_normal, R.string.size_large),
+                Prefs.indexOf(Prefs.SIZES, prefs.iconSize()), i -> {
+                    prefs.setIconSize(Prefs.SIZES[i]);
+                    host.restyle();
+                });
+        sheet.toggle(0, act.getString(R.string.show_names), null, prefs.showNames(), on -> {
+            prefs.setShowNames(on);
+            host.restyle();
+        });
         Set<String> hidden = prefs.hidden();
         sheet.item(0, act.getString(R.string.hidden_apps), act.getResources().getQuantityString(R.plurals.hidden_count, hidden.size(), hidden.size()),
                 v -> hiddenApps());
 
-        sheet.section(act.getString(R.string.system));
-        sheet.item(R.drawable.ic_settings, act.getString(R.string.settings), act.getString(R.string.settings_sub),
-                v -> host.start(new Intent(Settings.ACTION_SETTINGS), act.getString(R.string.settings)));
-        sheet.item(0, act.getString(R.string.about), act.getString(R.string.about_sub, version(act)), v -> new AboutPanel(act, sheet).open());
+    }
+
+    /** Up / down for each home row. */
+    private void rowOrder() {
+        sheet.clear();
+        sheet.item(0, "\u2039 " + act.getString(R.string.back), null, v -> {
+            appearance();
+            sheet.focus();
+        });
+        sheet.section(act.getString(R.string.row_order));
+        int[] names = {R.string.row_favorites, R.string.row_projector, R.string.row_apps};
+        java.util.List<String> order = prefs.rowOrder();
+        for (int i = 0; i < order.size(); i++) {
+            String row = order.get(i);
+            String label = act.getString(names[java.util.Arrays.asList(Prefs.ROWS).indexOf(row)]);
+            final int at = i;
+            sheet.item(0, label, act.getString(R.string.row_move_sub), v -> {
+                prefs.moveRow(row, at == 0 ? 1 : -1); // OK moves it up (the first one goes down)
+                host.restyle();
+                rowOrder();
+                sheet.focusAt(Math.max(1, at == 0 ? 2 : at));
+            }).trailing((i + 1) + "");
+        }
+        sheet.focus();
     }
 
     private void hiddenApps() {
@@ -99,8 +194,8 @@ final class SettingsPanel {
             });
         }
         sheet.item(0, act.getString(R.string.back), null, v -> {
-            render();
-            sheet.focusAt(6);
+            appearance();
+            sheet.focus();
         });
         sheet.focus();
     }
@@ -130,6 +225,19 @@ final class SettingsPanel {
                 if (AppRepo.moveFavorite(prefs.raw(), apps, a, 1)) host.restyle();
             });
         }
+        // Move inside All apps (switches the row to the custom order).
+        List<AppRepo.App> shown = prefs.sortApps(apps);
+        shown.removeIf(x -> prefs.hidden().contains(x.pkg()));
+        sheet.item(0, act.getString(R.string.menu_apps_left), null, v -> {
+            prefs.moveApp(shown, a, -1);
+            host.restyle();
+            appMenu(a);
+        });
+        sheet.item(0, act.getString(R.string.menu_apps_right), null, v -> {
+            prefs.moveApp(shown, a, 1);
+            host.restyle();
+            appMenu(a);
+        });
         boolean hidden = prefs.hidden().contains(a.pkg());
         sheet.item(0, act.getString(hidden ? R.string.unhide : R.string.menu_hide), act.getString(R.string.menu_hide_sub), v -> {
             prefs.setHidden(a.pkg(), !hidden);

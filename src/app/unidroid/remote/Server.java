@@ -35,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.10.0";
+    static final String VERSION = "0.11.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     /** The remote's layout and custom buttons, shared by every phone. */
@@ -57,7 +57,7 @@ public final class Server {
     private final BrowserRelay browser = new BrowserRelay(this::broadcast);
     private final TvServer tv = new TvServer();
     private final VirtualMouse mouse = new VirtualMouse();
-    private final Pin pin = new Pin();
+    private final Pairing pairing = new Pairing(devices.ids());
     private final HdmiWatch hdmiWatch;
     private final java.util.concurrent.ScheduledExecutorService timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
     private java.util.concurrent.ScheduledFuture<?> sleepTask;
@@ -161,8 +161,8 @@ public final class Server {
                 return;
             }
             boolean local = s.getInetAddress().isLoopbackAddress();
-            // With a PIN set, phones must be trusted (or give the PIN) to control the projector.
-            boolean allowed = local || pin.trusted(deviceHeader) || pin.admit(null, param(query, "pin"));
+            // Only paired phones may control the projector or see what is on it.
+            boolean allowed = local || pairing.paired(deviceHeader);
             if (!allowed && guarded(path)) {
                 respond(out, 403, "text/plain", "pin", method.equals("HEAD"));
                 return;
@@ -245,15 +245,11 @@ public final class Server {
                     else respond(out, 200, "text/html; charset=utf-8", Media.viewer(f), head);
                     break;
                 }
-                case "/pin": {
-                    // Set or clear the PIN: the launcher only (loopback).
-                    boolean ok = local && (param(query, "clear") != null ? pin.set(null) : pin.set(param(query, "set")));
-                    respond(out, ok ? 200 : 400, "text/plain", ok ? "ok" : "no", head);
-                    break;
-                }
                 case "/forget": {
                     // Only the launcher, on the device itself, manages the device list.
-                    boolean ok = local && devices.forget(param(query, "id"));
+                    java.util.List<String> gone = local ? devices.forget(param(query, "id")) : java.util.Collections.emptyList();
+                    pairing.forget(gone); // a forgotten phone must pair again
+                    boolean ok = !gone.isEmpty();
                     respond(out, ok ? 200 : 400, "text/plain", ok ? "ok" : "no", head);
                     break;
                 }
@@ -459,7 +455,7 @@ public final class Server {
     private String localInfo() {
         String base = info();
         return base.substring(0, base.length() - 1) + ",\"apk\":\"" + json(apk) + "\",\"devices\":" + devices.json()
-                + ",\"pin\":" + pin.required() + ",\"autohdmi\":" + HdmiWatch.enabled() + ",\"sleepAt\":" + sleepAt + "}";
+                + ",\"autohdmi\":" + HdmiWatch.enabled() + ",\"sleepAt\":" + sleepAt + "}";
     }
 
     static String json(String s) {
@@ -508,8 +504,7 @@ public final class Server {
 
         HeldKey held = new HeldKey(injector);
         Devices.Device[] device = new Devices.Device[1];
-        boolean admitted = !pin.required();
-        if (admitted) welcome(out);
+        boolean admitted = false;
         try {
             while (true) {
                 int b0 = in.read();
@@ -538,12 +533,16 @@ public final class Server {
                 } else if (opcode == 0x1) {
                     String msg = new String(payload, StandardCharsets.UTF_8);
                     if (!admitted) {
-                        // Only the hello (with the PIN when needed) is read until the phone is let in.
+                        // Until the phone is paired, only its hello (with the code from the TV) is read.
                         if (!msg.startsWith("h:")) continue;
                         String[] h = msg.substring(2).split("\t", 4);
-                        if (!pin.admit(h[0], h.length > 3 ? h[3] : null)) {
-                            sendFrame(out, 0x1, "x:pin".getBytes(StandardCharsets.UTF_8));
-                            continue;
+                        if (!pairing.paired(h[0])) {
+                            String code = h.length > 3 ? h[3] : null;
+                            if (code == null || !pairing.confirm(h[0], code)) {
+                                if (code == null) pairing.ask(h[0], h.length > 2 ? h[2] : null);
+                                sendFrame(out, 0x1, (code == null ? "x:pair" : "x:wrong").getBytes(StandardCharsets.UTF_8));
+                                continue;
+                            }
                         }
                         admitted = true;
                         sendFrame(out, 0x1, "x:ok".getBytes(StandardCharsets.UTF_8));
@@ -583,7 +582,7 @@ public final class Server {
         }
     }
 
-    /** h:<id>TAB<1 when opened from the home screen>TAB<name>[TAB<pin>] */
+    /** h:<id>TAB<1 when opened from the home screen>TAB<name>[TAB<pairing code>] */
     private Devices.Device hello(String arg) {
         String[] p = arg.split("\t", 4);
         if (p.length < 3) return null;

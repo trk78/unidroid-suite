@@ -41,7 +41,7 @@
     <string name="remote_add_help">Scanne avec l\'appareil photo (ou ouvre %1$s), puis Partager › Sur l\'écran d\'accueil.</string>
     <string name="remote_forget">Oublier cet appareil</string>
     <string name="remote_forget_short">Oublier</string>
-    <string name="remote_forget_sub">Il reviendra s\'il rouvre la télécommande</string>
+    <string name="remote_forget_sub">Il devra s’associer de nouveau avec un code affiché sur la télé</string>
     <string name="remote_server">Serveur</string>
     <string name="remote_restart">Redémarrer le serveur de la télécommande</string>
     <string name="remote_server_on">Actif sur le port %1$d</string>
@@ -135,7 +135,7 @@
 
     <!-- Réglages du launcher -->
     <string name="settings_launcher">Réglages</string>
-    <string name="settings_launcher_sub">Apparence de l\'accueil et réglages Android</string>
+    <string name="settings_launcher_sub">Projecteur, réseau, accueil et système</string>
     <string name="look">Apparence</string>
     <string name="wallpaper">Fond</string>
     <string name="wallpaper_dynamic">Couleur de l\'appli</string>
@@ -163,7 +163,7 @@
     <string name="unhide">Réafficher</string>
     <string name="system">Système</string>
     <string name="about">À propos</string>
-    <string name="about_sub">UniDroid Launcher %1$s · libre et open source (MIT)</string>
+    <string name="about_sub">UniDroid %1$s · libre et open source (MIT)</string>
 
     <!-- Menu appli -->
     <string name="menu_open">Ouvrir</string>
@@ -230,17 +230,52 @@
     <string name="auto_hdmi">Passer en HDMI automatiquement</string>
     <string name="auto_hdmi_sub">Quand l’appareil HDMI s’allume (Apple TV, console…)</string>
     <string name="sleep_timer">Minuterie de mise en veille</string>
-    <string name="sleep_in">Mise en veille dans</string>
     <string name="minutes">%1$d min</string>
     <string name="sleep_at">Le projecteur se met en veille à %1$s</string>
-    <string name="remote_security">Sécurité</string>
-    <string name="pin">Code PIN</string>
-    <string name="pin_on">Activé : un nouveau téléphone doit le saisir une fois</string>
-    <string name="pin_off">Désactivé : tout téléphone sur ton Wi-Fi peut piloter le projecteur</string>
-    <string name="pin_help">Choisis 4 chiffres avec Gauche et Droite. Chaque téléphone le demandera une fois.</string>
-    <string name="pin_digit">Chiffre %1$d</string>
-    <string name="pin_save">Activer ce code</string>
-    <string name="pin_saved">Code %1$s activé : saisis-le sur chaque téléphone</string>
-    <string name="pin_remove">Désactiver le code</string>
-    <string name="pin_remove_sub">Tout téléphone sur ton Wi-Fi pourra de nouveau piloter le projecteur</string>
+
+    <!-- Pairing -->
+    <string name="pair_title">Associer un téléphone</string>
+    <string name="pair_from">%1$s veut utiliser la télécommande</string>
+    <string name="pair_help">Saisis ce code sur le téléphone</string>
+
+    <!-- Settings categories -->
+    <string name="cat_projector">Projecteur</string>
+    <string name="cat_network">Réseau</string>
+    <string name="cat_home">Accueil</string>
+    <string name="look_sub">Fond, couleurs, rangées et applis masquées</string>
+
+    <!-- Home look -->
+    <string name="background">Fond</string>
+    <string name="background_style">Style</string>
+    <string name="background_style_sub">Aurore et Nébuleuse bougent lentement</string>
+    <string name="bg_glow">Lueur de l’appli</string>
+    <string name="bg_aurora">Aurore</string>
+    <string name="bg_nebula">Nébuleuse</string>
+    <string name="bg_gradient">Dégradé</string>
+    <string name="bg_halo">Halo</string>
+    <string name="bg_plain">Noir</string>
+    <string name="background_colors">Couleurs</string>
+    <string name="pal_accent">Accent</string>
+    <string name="pal_ocean">Océan</string>
+    <string name="pal_dusk">Crépuscule</string>
+    <string name="pal_ember">Braise</string>
+    <string name="pal_forest">Forêt</string>
+    <string name="pal_lavender">Lavande</string>
+    <string name="clock_section">Horloge</string>
+    <string name="clock_style">Style</string>
+    <string name="clock_thin">Grande</string>
+    <string name="clock_bold">Grasse</string>
+    <string name="clock_compact">Petite</string>
+    <string name="clock_hidden">Masquée</string>
+    <string name="row_order">Ordre des rangées</string>
+    <string name="row_order_sub">Favoris, UniDroid et Toutes les applis dans l’ordre voulu</string>
+    <string name="row_move_sub">OK la fait monter</string>
+    <string name="app_sort">Ordre</string>
+    <string name="app_sort_sub">Personnalisé : maintiens OK sur une appli, puis Déplacer</string>
+    <string name="sort_alpha">Par nom</string>
+    <string name="sort_custom">Personnalisé</string>
+    <string name="icon_size">Taille des icônes</string>
+    <string name="show_names">Noms des applis</string>
+    <string name="menu_apps_left">Déplacer à gauche dans Toutes les applis</string>
+    <string name="menu_apps_right">Déplacer à droite dans Toutes les applis</string>
 </resources>

@@ -64,19 +64,48 @@ final class Devices {
         save();
     }
 
-    synchronized boolean forget(String id) {
-        boolean removed = byId.remove(id) != null;
-        if (removed) save();
+    /**
+     * Forgets this device and every other one with the same name: Safari and the home-screen
+     * app of one iPhone keep separate storage, so one phone often has several ids.
+     * Returns the ids removed.
+     */
+    synchronized java.util.List<String> forget(String id) {
+        java.util.List<String> removed = new java.util.ArrayList<>();
+        Device d = byId.get(id);
+        if (d == null) return removed;
+        for (java.util.Iterator<Device> it = byId.values().iterator(); it.hasNext(); ) {
+            Device x = it.next();
+            if (x.name.equals(d.name)) {
+                removed.add(x.id);
+                it.remove();
+            }
+        }
+        save();
         return removed;
     }
 
+    synchronized Iterable<String> ids() {
+        return new java.util.ArrayList<>(byId.keySet());
+    }
+
+    /** One entry per device name (most recent id), merging what the same phone reported. */
     synchronized String json() {
-        StringBuilder sb = new StringBuilder("[");
+        Map<String, Device> byName = new LinkedHashMap<>();
+        Map<String, boolean[]> flags = new LinkedHashMap<>();
         for (Device d : byId.values()) {
+            Device best = byName.get(d.name);
+            if (best == null || d.seen > best.seen) byName.put(d.name, d);
+            boolean[] f = flags.computeIfAbsent(d.name, k -> new boolean[2]);
+            f[0] |= d.installed;
+            f[1] |= d.connections > 0;
+        }
+        StringBuilder sb = new StringBuilder("[");
+        for (Device d : byName.values()) {
+            boolean[] f = flags.get(d.name);
             if (sb.length() > 1) sb.append(',');
             sb.append("{\"id\":\"").append(d.id).append("\",\"name\":\"").append(Server.json(d.name))
-                    .append("\",\"installed\":").append(d.installed)
-                    .append(",\"connected\":").append(d.connections > 0)
+                    .append("\",\"installed\":").append(f[0])
+                    .append(",\"connected\":").append(f[1])
                     .append(",\"seen\":").append(d.seen).append('}');
         }
         return sb.append(']').toString();

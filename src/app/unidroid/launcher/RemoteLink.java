@@ -41,8 +41,6 @@ final class RemoteLink {
         /** Address to open on a phone, e.g. http://192.168.1.87:8080 */
         String url;
         final List<Device> devices = new ArrayList<>();
-        /** A PIN protects the remote. */
-        boolean pin;
         /** Switch to HDMI when the HDMI device wakes up. */
         boolean autoHdmi;
         /** When the sleep timer fires (epoch ms), 0 when off. */
@@ -125,7 +123,6 @@ final class RemoteLink {
         try {
             JSONObject o = new JSONObject(json);
             s.running = true;
-            s.pin = o.optBoolean("pin");
             s.autoHdmi = o.optBoolean("autohdmi");
             s.sleepAt = o.optLong("sleepAt");
             JSONArray arr = o.optJSONArray("devices");

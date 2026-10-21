@@ -54,11 +54,10 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     private final Handler main = new Handler(Looper.getMainLooper());
     private List<AppRepo.App> apps = new ArrayList<>();
 
-    private View glow;
-    private GradientDrawable aurora;
-    private int tint = 0xFF3D6FFF;
-    private ValueAnimator tintAnimator;
-    private View timeBlock, hero;
+    private Backdrop backdrop;
+    private String backdropKey = "";
+    private LinearLayout column;
+    private View timeBlock, hero, favoritesSection;
     private TextView clock, date, kicker, title, subtitle;
     private ScrollView scroll;
     private LinearLayout favoritesRow, projectorRow, appsRow;
@@ -144,6 +143,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         clockTick.run();
         main.removeCallbacks(remotePoll);
         remotePoll.run();
+        backdrop.start();
     }
 
     @Override
@@ -151,6 +151,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         super.onPause();
         main.removeCallbacks(clockTick);
         main.removeCallbacks(remotePoll);
+        backdrop.pause(); // no animation behind other apps
     }
 
     @Override
@@ -234,13 +235,29 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
     public void restyle() {
         int accent = prefs.accent();
         kicker.setTextColor(accent);
-        String wallpaper = prefs.wallpaper();
-        glow.setVisibility(Prefs.WALLPAPER_PLAIN.equals(wallpaper) ? View.GONE : View.VISIBLE);
-        if (Prefs.WALLPAPER_ACCENT.equals(wallpaper)) animateTint(accent);
-        timeBlock.setVisibility(prefs.showClock() ? View.VISIBLE : View.INVISIBLE);
+        // Rebuild the background only when it changed, so animations do not restart.
+        String key = prefs.wallpaper() + "/" + prefs.palette() + "/" + accent;
+        if (!key.equals(backdropKey)) {
+            backdropKey = key;
+            backdrop.set(prefs.wallpaper(), Backdrop.palette(prefs.palette(), accent), accent);
+        }
+        styleClock(prefs.clockStyle());
+        // Rows in the chosen order, right after the hero.
+        View[] sections = {favoritesSection, projectorSection, appsSection};
+        int at = column.indexOfChild(hero) + 1;
+        for (String row : prefs.rowOrder()) {
+            View sec = sections[java.util.Arrays.asList(Prefs.ROWS).indexOf(row)];
+            column.removeView(sec);
+            column.addView(sec, at++);
+        }
         projectorSection.setVisibility(prefs.showProjector() ? View.VISIBLE : View.GONE);
         appsSection.setVisibility(prefs.showApps() ? View.VISIBLE : View.GONE);
         reload();
+    }
+
+    @Override
+    public void openPanel(String name) {
+        openShortcut(name);
     }
 
     @Override
@@ -267,17 +284,9 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Ui.INK);
 
-        // Wallpaper: a large soft glow, tinted with the focused app's colour or the accent.
-        glow = new View(this);
-        aurora = new GradientDrawable();
-        aurora.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-        aurora.setGradientRadius(px(700));
-        aurora.setColors(new int[] {Ui.withAlpha(tint, 150), 0});
-        glow.setBackground(aurora);
-        FrameLayout.LayoutParams glowLp = new FrameLayout.LayoutParams(px(1500), px(1500), Gravity.TOP | Gravity.END);
-        glow.setTranslationX(px(320));
-        glow.setTranslationY(-px(640));
-        root.addView(glow, glowLp);
+        // Wallpaper (styles and palettes in Backdrop), under scrims that keep the text readable.
+        backdrop = new Backdrop(this, ui);
+        root.addView(backdrop, new FrameLayout.LayoutParams(-1, -1));
         root.addView(scrim(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {Ui.withAlpha(Ui.INK, 235), Ui.withAlpha(Ui.INK, 90), 0}));
         root.addView(scrim(GradientDrawable.Orientation.BOTTOM_TOP, new int[] {Ui.withAlpha(Ui.INK, 240), Ui.withAlpha(Ui.INK, 50), 0}));
 
@@ -311,7 +320,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
         scroll.setFillViewport(true);
         scroll.setClipChildren(false);
-        LinearLayout column = new LinearLayout(this);
+        column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
         column.setClipChildren(false);
         column.setClipToPadding(false);
@@ -327,6 +336,7 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         hero = buildHero();
         column.addView(hero);
         favoritesRow = addRow(column, R.string.row_favorites);
+        favoritesSection = (View) favoritesRow.getParent().getParent();
         projectorRow = addRow(column, R.string.row_projector);
         projectorSection = (View) projectorRow.getParent().getParent();
         appsRow = addRow(column, R.string.row_apps);
@@ -443,27 +453,17 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         favoritesRow.addView(addFavoriteCard());
 
         projectorRow.removeAllViews();
-        projectorRow.addView(tile(R.drawable.ic_projector, getString(R.string.projection), null, getString(R.string.projection_sub),
-                0xFF8F6BFF, v -> projectionPanel.open(), 220));
-        projectorRow.addView(tile(R.drawable.ic_image, getString(R.string.picture), null, getString(R.string.picture_sub),
-                0xFFFFB020, v -> picturePanel.open(), 220));
-        projectorRow.addView(tile(R.drawable.ic_sound, getString(R.string.sound), null, getString(R.string.sound_sub),
-                0xFF30D158, v -> soundPanel.open(), 220));
         if (ProjectionPanel.hasHdmi(this)) {
             projectorRow.addView(tile(R.drawable.ic_hdmi, getString(R.string.hdmi), null, getString(R.string.hdmi_sub),
                     0xFFFF9F43, v -> ProjectionPanel.openHdmi(this), 220));
         }
         projectorRow.addView(tile(R.drawable.ic_globe, getString(R.string.browser), null, getString(R.string.browser_sub),
                 0xFF2ED3C6, v -> start(new Intent(this, BrowserActivity.class), getString(R.string.browser)), 220));
-        projectorRow.addView(tile(R.drawable.ic_wifi, getString(R.string.wifi), null, getString(R.string.wifi_sub),
-                0xFF4CC4FF, v -> wifiPanel.open(), 220));
-        projectorRow.addView(tile(R.drawable.ic_bluetooth, getString(R.string.bluetooth), null, getString(R.string.bluetooth_sub),
-                0xFF5B7CFF, v -> bluetoothPanel.open(), 220));
         projectorRow.addView(remoteTile());
 
         appsRow.removeAllViews();
         Set<String> hidden = prefs.hidden();
-        for (AppRepo.App a : apps) {
+        for (AppRepo.App a : prefs.sortApps(apps)) {
             if (!hidden.contains(a.pkg())) appsRow.addView(appIcon(a));
         }
 
@@ -698,17 +698,19 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         box.setBackground(bg);
         ImageView iv = new ImageView(this);
         iv.setImageDrawable(a.icon);
-        box.addView(iv, new FrameLayout.LayoutParams(px(84), px(84), Gravity.CENTER));
-        col.addView(box, new LinearLayout.LayoutParams(px(132), px(132)));
+        int[] size = prefs.iconBox();
+        box.addView(iv, new FrameLayout.LayoutParams(px(size[1]), px(size[1]), Gravity.CENTER));
+        col.addView(box, new LinearLayout.LayoutParams(px(size[0]), px(size[0])));
         TextView label = ui.text(21, Ui.DIM, Typeface.DEFAULT);
         label.setText(a.label);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
         label.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(px(170), -2);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(px(size[2]), -2);
         llp.topMargin = px(14);
         col.addView(label, llp);
-        col.setLayoutParams(ui.card(170, -1, 14));
+        label.setVisibility(prefs.showNames() ? View.VISIBLE : View.GONE);
+        col.setLayoutParams(ui.card(size[2], -1, 14));
         makeFocusable(col, 1.1f, getString(R.string.kicker_app), a.label, a.category(this), a.color, focused -> {
             bg.setColor(focused ? Ui.FG : Ui.GLASS);
             label.setTextColor(focused ? Ui.FG : Ui.DIM);
@@ -757,21 +759,18 @@ public final class HomeActivity extends Activity implements SettingsPanel.Host {
         v.setForeground(ring);
     }
 
-    /** Follows the focused item, unless the wallpaper is set to a fixed colour. */
+    /** The glow background follows the focused item. */
     private void setTint(int target) {
-        if (!Prefs.WALLPAPER_DYNAMIC.equals(prefs.wallpaper())) return;
-        animateTint(target);
+        backdrop.tint(target);
     }
 
-    private void animateTint(int target) {
-        if (tintAnimator != null) tintAnimator.cancel();
-        tintAnimator = ValueAnimator.ofObject(new ArgbEvaluator(), tint, target);
-        tintAnimator.setDuration(900);
-        tintAnimator.addUpdateListener(an -> {
-            tint = (int) an.getAnimatedValue();
-            aurora.setColors(new int[] {Ui.withAlpha(tint, 150), 0});
-        });
-        tintAnimator.start();
+    /** thin (large, light), bold, compact (small) or hidden. */
+    private void styleClock(String style) {
+        timeBlock.setVisibility("hidden".equals(style) ? View.INVISIBLE : View.VISIBLE);
+        boolean compact = "compact".equals(style), bold = "bold".equals(style);
+        clock.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, px(compact ? 48 : bold ? 84 : 92));
+        clock.setTypeface(bold ? Typeface.DEFAULT_BOLD : compact ? Typeface.DEFAULT : Typeface.create("sans-serif-light", Typeface.NORMAL));
+        date.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, px(compact ? 22 : 26));
     }
 
     private void focusFirst(LinearLayout row) {

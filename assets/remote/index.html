@@ -40,6 +40,28 @@
     color-scheme: light;
   }
 }
+:root[data-theme=dark] {
+  --bg: #000; --fg: #f5f5f7; --dim: rgba(235,235,245,.55);
+  --glass: rgba(255,255,255,.07); --glass-hi: rgba(255,255,255,.17);
+  --edge: rgba(255,255,255,.13); --spec: rgba(255,255,255,.16);
+  --shadow: 0 12px 32px rgba(0,0,0,.35);
+  --field: rgba(118,118,128,.24);
+  --accent: #0a84ff; --red: #ff453a; --green: #30d158; --orange: #ff9f0a;
+  --glow1: rgba(10,132,255,.20); --glow2: rgba(191,90,242,.14); --touch: rgba(10,132,255,.38);
+  --rim: rgba(120,180,255,.6);
+  color-scheme: dark;
+}
+:root[data-theme=light] {
+    --bg: #f2f2f7; --fg: #1d1d1f; --dim: rgba(60,60,67,.55);
+    --glass: rgba(255,255,255,.6); --glass-hi: rgba(255,255,255,1);
+    --edge: rgba(0,0,0,.07); --spec: rgba(255,255,255,.9);
+    --shadow: 0 10px 28px rgba(0,0,0,.08);
+    --field: rgba(118,118,128,.12);
+    --accent: #007aff; --red: #ff3b30; --green: #34c759; --orange: #ff9500;
+    --glow1: rgba(0,122,255,.13); --glow2: rgba(175,82,222,.10); --touch: rgba(0,122,255,.22);
+    --rim: rgba(0,122,255,.45);
+  color-scheme: light;
+}
 @property --a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -146,64 +168,82 @@ body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .2
 @keyframes blip { 40% { transform: scale(1.35); } }
 @keyframes spin { to { --a: 360deg; } }
 
-/* ---------- controls: blocks the user can reorder or hide */
-.controls { flex: 1; display: flex; flex-direction: column; gap: 18px; }
-.row3 { display: grid; grid-template-columns: repeat(3, 1fr); }
-.block.off { display: none; }
+/* ---------- control center grid: tiles the user arranges like iOS Control Center */
 .status { cursor: pointer; }
 .status .i { width: 15px; height: 15px; color: var(--dim); flex: none; }
-.custom { display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 14px; }
-.custom:empty { display: none; }
-.cbtn { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: var(--cell, 76px); gap: 12px; grid-auto-flow: dense; }
+.tile {
+  position: relative; min-width: 0; border-radius: 26px; display: flex; align-items: center; justify-content: center;
+  gap: 10px; color: var(--fg); touch-action: none; -webkit-user-select: none; user-select: none;
+  transition: transform .45s cubic-bezier(.2,1.7,.35,1), background-color .25s;
+}
+.tile.round { border-radius: 50%; }
+.tile.pressed { transform: scale(.9); background-color: var(--glass-hi); transition-duration: .07s; }
+.tile .i { width: 26px; height: 26px; }
+.tile img { width: 36px; height: 36px; border-radius: 10px; pointer-events: none; }
+.tile .k { font-size: 15px; font-weight: 700; }
+.tile .lab { display: flex; flex-direction: column; min-width: 0; pointer-events: none; }
+.tile .lab b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .lab small { font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.wide { justify-content: flex-start; padding: 0 16px; }
+.tile.padtile { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.tile .pad { width: 100%; height: 100%; }
+.tile.vol { flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
+.tile.vol.h { flex-direction: row; }
+.tile.vol .half { flex: 1; align-self: stretch; display: grid; place-items: center; }
+.tile.vol .half.pressed { background: var(--glass-hi); }
+.tile.vol .sep { flex: none; background: var(--edge); width: 60%; height: 1px; }
+.tile.vol.h .sep { width: 1px; height: 60%; }
+.tile.sleep.on { background: var(--accent); color: #fff; }
+.tile.sleep.on .lab small { color: rgba(255,255,255,.8); }
+.tile .cd { display: flex; flex-direction: column; align-items: center; line-height: 1; pointer-events: none; }
+.tile .cd b { font-size: 22px; font-weight: 700; }
+.tile .cd small { font-size: 11px; font-weight: 600; opacity: .85; margin-top: 2px; }
+/* editing: tiles wiggle, show a remove badge and a resize handle, and can be dragged */
+body.editing .tile { animation: wiggle .32s ease-in-out infinite alternate; }
+body.editing .tile:nth-child(2n) { animation-delay: -.16s; }
+body.editing .tile.drag { animation: none; z-index: 5; transition: none; opacity: .92; }
+@keyframes wiggle { from { rotate: -1.1deg; } to { rotate: 1.1deg; } }
+.tile .minus, .tile .size { display: none; position: absolute; border: 0; padding: 0; }
+body.editing .tile .minus, body.editing .tile .size { display: grid; place-items: center; }
+.tile .minus { top: -6px; left: -6px; width: 26px; height: 26px; border-radius: 50%; background: rgba(120,120,128,.9); color: #fff; font-size: 20px; line-height: 1; z-index: 2; }
+.tile .size { right: -4px; bottom: -4px; width: 26px; height: 26px; border-radius: 50%; background: none; color: var(--fg); z-index: 2; }
+.tile .size::before { content: ""; width: 14px; height: 14px; border: 3px solid currentColor; border-top: 0; border-left: 0; border-radius: 0 0 12px 0; }
+.ccbar { display: none; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.seg { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--field); }
+.seg button { flex: 1; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--fg); font: inherit; font-size: 14px; font-weight: 600; }
+.seg button.on { background: var(--glass-hi); }
+.dots { display: flex; gap: 14px; flex-wrap: wrap; padding: 6px 4px; }
+.dots button { width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; }
+.dots button.on { border-color: var(--fg); }
+body.editing .ccbar { display: flex; }
+.ccbar .btn { height: 48px; padding: 0 22px; border-radius: 24px; font-weight: 600; gap: 8px; display: flex; }
+#cc-done { display: none; height: 40px; padding: 0 18px; border-radius: 20px; font-weight: 600; background: var(--accent); color: #fff; border: 0; }
+body.editing #cc-done { display: block; }
+body.editing .power { display: none; }
+/* gallery of controls to add */
+body.pick-open #pick { display: flex; }
+.cbtn { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; cursor: pointer; }
 .cbtn .btn { width: 58px; height: 58px; border-radius: 50%; }
 .cbtn .btn img { width: 34px; height: 34px; border-radius: 9px; pointer-events: none; }
 .cbtn .btn .k { font-size: 14px; font-weight: 700; pointer-events: none; }
-.cbtn span { font-size: 11.5px; color: var(--dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* ---------- send sheet and PIN */
-body.send-open #send { display: flex; }
-.send .row { cursor: pointer; }
-.sendform { display: flex; gap: 8px; }
-.sendform input, .pinbox input { flex: 1; min-width: 0; height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: var(--field); color: var(--fg); font: inherit; -webkit-user-select: text; user-select: text; }
-.sendform .btn, .pinbox .btn { height: 48px; padding: 0 18px; border-radius: 24px; background: var(--accent); color: #fff; font-weight: 600; }
-#shot { display: none; width: 100%; border-radius: 14px; }
-#shot.on { display: block; }
-.pinbox { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(0,0,0,.6); padding: 24px; }
-body.pin-needed .pinbox { display: grid; }
-.pinbox form { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); padding: 22px; border-radius: 24px; }
-.pinbox small { color: var(--dim); font-size: 14px; }
-.pinbox input { text-align: center; font-size: 24px; letter-spacing: .4em; }
-
-/* ---------- editor */
-body.edit-open #edit, body.pick-open #pick { display: flex; }
-.edit .row, .pick .row { cursor: pointer; }
-.edit .row .ic { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--glass-hi); }
-.edit .row .ic img { width: 24px; height: 24px; border-radius: 6px; }
-.edit .row .ic .i, .pick .row .i { width: 20px; height: 20px; }
-.edit .mv { width: 36px; height: 36px; border-radius: 50%; flex: none; border: 0; background: var(--glass); color: var(--fg); font-size: 18px; }
-.edit .mv:disabled { opacity: .25; }
-.edit .add { height: 52px; border-radius: 26px; font-weight: 600; color: var(--accent); }
+.cbtn span { font-size: 11.5px; color: var(--dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.pick .gal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; padding: 4px 0 8px; }
+.pick form { display: flex; flex-direction: column; gap: 10px; }
+.pick input, .pinbox input { height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: var(--field); color: var(--fg); font: inherit; -webkit-user-select: text; user-select: text; }
+.pick .note { color: var(--dim); font-size: 14px; text-align: center; padding: 12px; }
 .switch { width: 50px; height: 30px; border-radius: 15px; background: var(--field); position: relative; flex: none; transition: background .2s; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); transition: transform .2s; }
 .on > .switch { background: var(--green); }
 .on > .switch::after { transform: translateX(20px); }
-.seg { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: var(--field); }
-.seg button { flex: 1; height: 36px; border: 0; border-radius: 10px; background: none; color: var(--fg); font: inherit; font-size: 14px; font-weight: 600; }
-.seg button.on { background: var(--glass-hi); }
-.pick .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 8px; padding-top: 6px; }
-.pick .grid .cbtn { cursor: pointer; }
-.pick form { display: flex; flex-direction: column; gap: 10px; }
-.pick input { height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: var(--field); color: var(--fg); font: inherit; }
-.pick .note { color: var(--dim); font-size: 14px; text-align: center; padding: 20px; }
-.pill {
-  grid-column: span 2; display: flex; align-items: center; justify-content: space-between;
-  height: 68px; border-radius: 34px; padding: 0 6px;
-  /* Columns are half of this area; round buttons (68px) sit centred in them. */
-  margin: 0 calc(25% - 34px);
-}
-.pill .btn { width: 56px; height: 56px; border-radius: 50%; background: transparent; }
-.pill .btn.pressed { background: var(--glass-hi); }
-.vol-label { font-size: 13px; font-weight: 600; color: var(--dim); letter-spacing: .02em; }
+/* pairing: the code shown on the TV */
+.pinbox { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(0,0,0,.6); padding: 24px; }
+body.pairing .pinbox { display: grid; }
+.pinbox form { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); padding: 22px; border-radius: 24px; text-align: center; }
+.pinbox b { font-size: 19px; }
+.pinbox small { color: var(--dim); font-size: 14px; line-height: 1.4; }
+.pinbox input { text-align: center; font-size: 30px; letter-spacing: .5em; padding-left: .5em; }
+.pinbox .err { color: var(--red); }
 
 /* ---------- keyboard sheet */
 .sheet {
@@ -300,9 +340,7 @@ body.tabs-open .tabs { display: flex; }
   .app { max-width: 900px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; column-gap: 48px; }
   header { grid-column: 1 / -1; }
   .pad { width: min(42vw, 70dvh, 380px); }
-  .controls { align-self: center; display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; }
-  .controls { grid-column: 1 / -1; }
-  .controls .pad-wrap { grid-row: span 4; }
+  .grid, .ccbar { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, .pad::before { animation: none !important; transition-duration: 0s !important; }
@@ -317,7 +355,7 @@ body.tabs-open .tabs { display: flex; }
   <defs>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 14.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-power" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3.2v8.3"/><path d="M7.6 6.2a7.6 7.6 0 1 0 8.8 0"/></g></symbol>
-    <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M10.4 3.2h3.2l.5 2.4 1.7.9 2.3-.8 1.6 2.8-1.8 1.6v2l1.8 1.6-1.6 2.8-2.3-.8-1.7.9-.5 2.4h-3.2l-.5-2.4-1.7-.9-2.3.8-1.6-2.8 1.8-1.6v-2L4.3 8.5l1.6-2.8 2.3.8 1.7-.9z"/><circle cx="12" cy="12" r="2.8"/></g></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9.46 5.26 L10.13 2.79 L13.87 2.79 L14.54 5.26 L14.97 5.44 L17.19 4.17 L19.83 6.81 L18.56 9.03 L18.74 9.46 L21.21 10.13 L21.21 13.87 L18.74 14.54 L18.56 14.97 L19.83 17.19 L17.19 19.83 L14.97 18.56 L14.54 18.74 L13.87 21.21 L10.13 21.21 L9.46 18.74 L9.03 18.56 L6.81 19.83 L4.17 17.19 L5.44 14.97 L5.26 14.54 L2.79 13.87 L2.79 10.13 L5.26 9.46 L5.44 9.03 L4.17 6.81 L6.81 4.17 L9.03 5.44Z"/><circle cx="12" cy="12" r="3"/></g></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 13.5L4 9l4.5-4.5"/><path d="M4.5 9h10a5.5 5.5 0 0 1 0 11H11"/></g></symbol>
     <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.2V19a1 1 0 0 0 1 1h3.3v-5.2h3.4V20H17a1 1 0 0 0 1-1V9.2"/></g></symbol>
     <symbol id="i-apps" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></g></symbol>
@@ -343,6 +381,11 @@ body.tabs-open .tabs { display: flex; }
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.8 5 13.5h6l-1 7.7 8-10.7h-6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
     <symbol id="i-mouse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="6.5" y="3" width="11" height="18" rx="5.5"/><path d="M12 3v6.5M12 9.5"/></g></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></g></symbol>
+    <symbol id="i-hdmi" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v5l-3 3H6l-3-3z"/><path d="M8 11.5h8"/></g></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.6 16a5 5 0 0 1 6.8 0"/><circle cx="12" cy="19" r=".8" fill="currentColor"/></g></symbol>
+    <symbol id="i-bt" viewBox="0 0 24 24"><path d="M7 7.5l10 9-5 4.5V3l5 4.5-10 9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -350,8 +393,7 @@ body.tabs-open .tabs { display: flex; }
 <div class="app">
   <header>
     <div class="status glass" id="status" role="button"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
-    <button class="btn glass hbtn" id="send-open" aria-label="Send"><svg class="i"><use href="#i-share"/></svg></button>
-    <button class="btn glass hbtn" id="mouse-open" aria-label="Mouse"><svg class="i"><use href="#i-mouse"/></svg></button>
+    <button id="cc-done"></button>
     <button class="btn glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
 
@@ -361,8 +403,11 @@ body.tabs-open .tabs { display: flex; }
     <button class="x" id="install-close" aria-label="Close">×</button>
   </div>
 
-  <div class="controls" id="blocks">
-  <div class="pad-wrap block" data-block="pad">
+  <div class="grid" id="grid"></div>
+  <div class="ccbar"><button class="btn glass" id="cc-add"></button><button class="btn glass" id="cc-theme"></button></div>
+</div>
+
+<div hidden id="padhome">
     <div class="pad glass" id="pad" role="application" aria-label="Touch pad: tap, swipe or hold">
       <div class="ok"></div>
       <svg class="chev" data-z="UP" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24"/></svg>
@@ -370,68 +415,17 @@ body.tabs-open .tabs { display: flex; }
       <svg class="chev" data-z="DOWN" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24" transform="rotate(180 12 12)"/></svg>
       <svg class="chev" data-z="LEFT" viewBox="0 0 24 24"><use href="#i-chevron" width="24" height="24" transform="rotate(-90 12 12)"/></svg>
     </div>
-  </div>
-
-  <div class="row3 block" data-block="nav">
-    <button class="btn round glass" data-key="4" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
-    <button class="btn round glass" data-key="3" aria-label="Home"><svg class="i"><use href="#i-home"/></svg></button>
-    <button class="btn round glass" data-action="apps" aria-label="Apps"><svg class="i"><use href="#i-apps"/></svg></button>
-  </div>
-  <div class="row3 block" data-block="media">
-    <button class="btn round glass" data-key="89" aria-label="Rewind"><svg class="i"><use href="#i-rew"/></svg></button>
-    <button class="btn round glass" data-key="85" aria-label="Play / Pause"><svg class="i"><use href="#i-playpause"/></svg></button>
-    <button class="btn round glass" data-key="90" aria-label="Fast forward"><svg class="i"><use href="#i-ff"/></svg></button>
-  </div>
-  <div class="row3 block" data-block="volume">
-    <div class="pill glass">
-      <button class="btn" data-key="25" aria-label="Volume down"><svg class="i"><use href="#i-minus"/></svg></button>
-      <button class="btn" data-key="164" aria-label="Mute"><svg class="i"><use href="#i-mute"/></svg></button>
-      <button class="btn" data-key="24" aria-label="Volume up"><svg class="i"><use href="#i-plus"/></svg></button>
-    </div>
-    <button class="btn round glass" id="kb-open" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
-  </div>
-  <div class="custom block" data-block="custom" id="custom"></div>
-  </div>
-</div>
-
-<div class="tabs edit" id="edit">
-  <div class="top"><button class="btn glass" id="edit-reset"></button><button class="btn primary" id="edit-done"></button></div>
-  <h2 id="edit-layout"></h2>
-  <div id="edit-blocks"></div>
-  <h2 id="edit-buttons"></h2>
-  <div id="edit-list"></div>
-  <button class="btn glass add" id="edit-add"></button>
-  <h2 id="edit-feedback"></h2>
-  <div class="row glass" id="edit-haptics"><span class="t"><b></b><small></small></span><span class="switch"></span></div>
-</div>
-
-<div class="tabs send" id="send">
-  <div class="top"><button class="btn glass" id="send-done"></button></div>
-  <h2 id="send-media-title"></h2>
-  <label class="row glass" id="send-media"><span class="t"><b></b><small id="send-progress"></small></span>
-    <input type="file" id="send-file" accept="image/*,video/*" hidden></label>
-  <h2 id="send-link-title"></h2>
-  <form class="sendform" id="send-link"><input id="send-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off">
-    <button class="btn primary" id="send-go"></button></form>
-  <h2 id="send-shot-title"></h2>
-  <div class="row glass" id="send-shot"><span class="t"><b></b><small></small></span></div>
-  <img id="shot" alt="">
-  <h2 id="send-sleep-title"></h2>
-  <div class="seg" id="send-sleep"></div>
-  <p class="closed-note" id="send-sleep-note" style="display:block"></p>
 </div>
 
 <div class="pinbox" id="pinbox">
   <form class="glass" id="pin-form">
     <b id="pin-title"></b><small id="pin-sub"></small>
-    <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
-    <button class="btn primary" id="pin-go">OK</button>
+    <input id="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code">
   </form>
 </div>
 
 <div class="tabs pick" id="pick">
   <div class="top"><button class="btn glass" id="pick-back"></button></div>
-  <div class="seg" id="pick-seg"></div>
   <div id="pick-body"></div>
 </div>
 
@@ -549,10 +543,11 @@ function connect() {
   };
   ws.onmessage = e => {
     if (e.data.startsWith('w:')) { web.state(e.data.slice(2)); return; }
-    if (e.data.startsWith('l:')) { custom.apply(e.data.slice(2)); return; }
-    if (e.data === 'x:pin') { more.askPin(); return; }
-    if (e.data === 'x:ok') { more.pinOk(); return; }
-    if (e.data.startsWith('z:')) { more.sleepAt(+e.data.slice(2)); return; }
+    if (e.data.startsWith('l:')) { cc.apply(e.data.slice(2)); return; }
+    if (e.data === 'x:pair') { pairing.ask(); return; }
+    if (e.data === 'x:wrong') { pairing.wrong(); return; }
+    if (e.data === 'x:ok') { pairing.ok(); return; }
+    if (e.data.startsWith('z:')) { cc.sleepAt(+e.data.slice(2)); return; }
     if (e.data === 'p') {
       $('#lat').textContent = Math.max(1, Math.round(performance.now() - pingAt)) + ' ms';
     } else if (e.data.startsWith('i:')) {
@@ -583,8 +578,8 @@ document.addEventListener('visibilitychange', () => {
 
 // WebSocket first; plain HTTP as a fallback (no hold/repeat there).
 let pageId = null;
-const helloMsg = pin => 'h:' + deviceId + '\t' + (installed ? 1 : 0) + '\t' + deviceName + (pin ? '\t' + pin : '');
-/** Lets this phone's HTTP calls through when a PIN protects the remote. */
+const helloMsg = code => 'h:' + deviceId + '\t' + (installed ? 1 : 0) + '\t' + deviceName + (code ? '\t' + code : '');
+/** Identifies this (paired) phone on HTTP calls. */
 const authHeaders = () => ({ 'X-UDR-Device': deviceId });
 function send(msg) {
   if (ws && ws.readyState === 1) { ws.send(msg); return; }
@@ -596,22 +591,9 @@ function send(msg) {
 }
 
 // ---------------------------------------------------------------- haptics
-// iOS Safari has no vibrate(); toggling a native switch gives a light tap (iOS 18+).
-const hapticSwitch = (() => {
-  const label = document.createElement('label');
-  const input = document.createElement('input');
-  input.type = 'checkbox'; input.setAttribute('switch', '');
-  label.appendChild(input);
-  label.style.cssText = 'position:fixed;opacity:0;pointer-events:none;width:0;height:0;overflow:hidden';
-  document.body.appendChild(label);
-  return label;
-})();
-function hapticsOn() {
-  try { return localStorage.getItem('udr-haptics') !== 'off'; } catch (e) { return true; }
-}
+// A short buzz where the browser allows it (Android); iPhones have no vibration API.
 function haptic() {
-  if (!hapticsOn()) return;
-  if (navigator.vibrate) navigator.vibrate(8); else hapticSwitch.click();
+  if (navigator.vibrate) navigator.vibrate(8);
 }
 
 // ---------------------------------------------------------------- buttons
@@ -694,6 +676,7 @@ function flash(zone) {
 
 pad.addEventListener('touchstart', noDefault, { passive: false });
 pad.addEventListener('pointerdown', e => {
+  if (document.body.classList.contains('editing')) return; // the tile is being moved, not used
   e.preventDefault();
   pad.setPointerCapture(e.pointerId);
   pad.classList.add('touch');
@@ -759,7 +742,6 @@ function closeKeyboard() {
   document.body.classList.remove('typing');
   field.blur();
 }
-$('#kb-open').addEventListener('click', openKeyboard);
 $('#kb-close').addEventListener('click', closeKeyboard);
 field.addEventListener('blur', () => setTimeout(() => {
   if (document.activeElement !== field) document.body.classList.remove('typing');
@@ -991,202 +973,6 @@ const web = (() => {
   return { state };
 })();
 
-// ---------------------------------------------------------------- customisation
-// Like Control Center: blocks can be reordered or hidden, and custom buttons launch an
-// app of the projector, a UniDroid screen, an Android key or a web page. The layout lives
-// on the projector ("l:" messages), so every phone shows the same remote.
-const custom = (() => {
-  const T = fr ? {
-    done: 'OK', reset: 'Réinitialiser', layout: 'Disposition', buttons: 'Boutons personnalisés', add: 'Ajouter un bouton',
-    feedback: 'Téléphone', haptics: 'Vibrations', hapticsSub: 'Un léger tap à chaque appui (iPhone : iOS 18 ou plus)',
-    back: 'Retour', apps: 'Applis', actions: 'Actions', keys: 'Touches', link: 'Lien',
-    noApps: 'Ouvre l\u2019accueil UniDroid sur le projecteur une fois pour publier la liste des applis.',
-    url: 'Adresse (https://…)', name: 'Nom du bouton', save: 'Ajouter', none: 'Aucun bouton : ajoute tes applis et actions préférées.',
-    blocks: { pad: 'Pavé tactile', nav: 'Retour · Accueil · Applis', media: 'Lecture', volume: 'Volume · Clavier', custom: 'Boutons personnalisés' }
-  } : {
-    done: 'Done', reset: 'Reset', layout: 'Layout', buttons: 'Custom buttons', add: 'Add a button',
-    feedback: 'Phone', haptics: 'Haptics', hapticsSub: 'A light tap on every press (iPhone: iOS 18 or later)',
-    back: 'Back', apps: 'Apps', actions: 'Actions', keys: 'Keys', link: 'Link',
-    noApps: 'Open the UniDroid home screen on the projector once to publish the app list.',
-    url: 'Address (https://…)', name: 'Button name', save: 'Add', none: 'No button yet: add your favourite apps and actions.',
-    blocks: { pad: 'Touch pad', nav: 'Back · Home · Apps', media: 'Playback', volume: 'Volume · Keyboard', custom: 'Custom buttons' }
-  };
-  const ACTIONS = [
-    ['open:keystone', fr ? 'Trapèze' : 'Keystone', 'i-desktop'],
-    ['open:projection', 'Projection', 'i-desktop'],
-    ['open:picture', fr ? 'Image' : 'Picture', 'i-desktop'],
-    ['open:sound', fr ? 'Son' : 'Sound', 'i-mute'],
-    ['hdmi', 'HDMI', 'i-bolt'],
-    ['browser', fr ? 'Navigateur' : 'Browser', 'i-globe'],
-    ['open:wifi', 'Wi-Fi', 'i-bolt'],
-    ['open:bluetooth', 'Bluetooth', 'i-bolt'],
-    ['open:settings', fr ? 'Réglages UniDroid' : 'UniDroid settings', 'i-gear'],
-    ['settings', fr ? 'Réglages Android' : 'Android settings', 'i-gear'],
-    ['apps', fr ? 'Toutes les applis' : 'All apps', 'i-apps']
-  ];
-  const KEYS = [
-    [82, 'Menu', '☰'], [165, 'Info', 'i'], [175, fr ? 'Sous-titres' : 'Subtitles', 'CC'], [84, fr ? 'Recherche' : 'Search', '⌕'],
-    [88, fr ? 'Précédent' : 'Previous', '⏮'], [87, fr ? 'Suivant' : 'Next', '⏭'], [86, 'Stop', '■'], [176, fr ? 'Réglages' : 'Settings', '⚙']
-  ];
-  const DEFAULT = { v: 1, order: ['pad', 'nav', 'media', 'volume', 'custom'], hidden: [], buttons: [] };
-  let L = JSON.parse(JSON.stringify(DEFAULT));
-
-  const esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
-  const icon = (id, cls) => '<svg class="i' + (cls ? ' ' + cls : '') + '"><use href="#' + id + '"/></svg>';
-  function face(b) {
-    if (b.t === 'app') return '<img alt="" src="icon?p=' + encodeURIComponent(b.pkg) + '">';
-    if (b.t === 'action') return icon((ACTIONS.find(a => a[0] === b.a) || [])[2] || 'i-bolt');
-    if (b.t === 'url') return icon('i-globe');
-    return '<span class="k">' + esc(b.sym || '•') + '</span>';
-  }
-  function press(b) {
-    haptic();
-    if (b.t === 'app') send('a:launch:' + b.pkg);
-    else if (b.t === 'action') send('a:' + b.a);
-    else if (b.t === 'url') send('a:url:' + b.url);
-    else if (b.t === 'key') send('k:' + b.k);
-  }
-
-  // ---- render the remote
-  function render() {
-    const host = $('#blocks');
-    const order = L.order.filter(n => host.querySelector('[data-block="' + n + '"]'));
-    for (const n of DEFAULT.order) if (!order.includes(n)) order.push(n);
-    order.forEach(n => {
-      const el = host.querySelector('[data-block="' + n + '"]');
-      host.appendChild(el);
-      el.classList.toggle('off', L.hidden.includes(n));
-    });
-    const box = $('#custom'); box.innerHTML = '';
-    L.buttons.forEach(b => {
-      const c = document.createElement('div'); c.className = 'cbtn';
-      c.innerHTML = '<button class="btn glass" aria-label="' + esc(b.label) + '">' + face(b) + '</button><span>' + esc(b.label) + '</span>';
-      const btn = c.querySelector('button');
-      btn.addEventListener('touchstart', noDefault, { passive: false });
-      btn.addEventListener('pointerdown', e => { e.preventDefault(); btn.classList.add('pressed'); });
-      btn.addEventListener('pointerup', () => { if (btn.classList.contains('pressed')) { btn.classList.remove('pressed'); press(b); } });
-      btn.addEventListener('pointerleave', () => btn.classList.remove('pressed'));
-      box.appendChild(c);
-    });
-  }
-  function apply(json) {
-    try {
-      const o = JSON.parse(json);
-      if (o && o.v === 1) L = { v: 1, order: o.order || DEFAULT.order, hidden: o.hidden || [], buttons: (o.buttons || []).slice(0, 24) };
-    } catch (e) { return; }
-    render();
-    if (document.body.classList.contains('edit-open')) paintEditor();
-  }
-  function save() { render(); paintEditor(); send('l:' + JSON.stringify(L)); }
-
-  // ---- editor
-  function row(html, cls) { const r = document.createElement('div'); r.className = 'row glass' + (cls ? ' ' + cls : ''); r.innerHTML = html; return r; }
-  function move(list, i, d) { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; save(); }
-  function paintEditor() {
-    const eb = $('#edit-blocks'); eb.innerHTML = '';
-    L.order.forEach((n, i) => {
-      const shown = !L.hidden.includes(n);
-      const r = row('<span class="t"><b>' + esc(T.blocks[n] || n) + '</b></span><button class="mv" aria-label="Up">↑</button><button class="mv" aria-label="Down">↓</button><span class="switch"></span>', shown ? 'on' : '');
-      const [up, down] = r.querySelectorAll('.mv');
-      up.disabled = i === 0; down.disabled = i === L.order.length - 1;
-      up.addEventListener('click', e => { e.stopPropagation(); move(L.order, i, -1); });
-      down.addEventListener('click', e => { e.stopPropagation(); move(L.order, i, 1); });
-      r.addEventListener('click', () => {
-        L.hidden = shown ? L.hidden.concat(n) : L.hidden.filter(x => x !== n);
-        // Never hide everything: the pad stays reachable.
-        if (L.order.every(x => L.hidden.includes(x))) L.hidden = L.hidden.filter(x => x !== 'pad');
-        save();
-      });
-      eb.appendChild(r);
-    });
-    const el = $('#edit-list'); el.innerHTML = '';
-    if (!L.buttons.length) { const p = document.createElement('p'); p.className = 'closed-note'; p.style.display = 'block'; p.textContent = T.none; el.appendChild(p); }
-    L.buttons.forEach((b, i) => {
-      const r = row('<span class="ic">' + face(b) + '</span><span class="t"><b>' + esc(b.label) + '</b></span><button class="mv" aria-label="Up">↑</button><button class="mv" aria-label="Down">↓</button><button class="btn x" aria-label="Remove">×</button>');
-      const [up, down] = r.querySelectorAll('.mv');
-      up.disabled = i === 0; down.disabled = i === L.buttons.length - 1;
-      up.addEventListener('click', () => move(L.buttons, i, -1));
-      down.addEventListener('click', () => move(L.buttons, i, 1));
-      r.querySelector('.x').addEventListener('click', () => { L.buttons.splice(i, 1); save(); });
-      el.appendChild(r);
-    });
-    $('#edit-haptics').classList.toggle('on', hapticsOn());
-  }
-  function openEditor() { paintEditor(); document.body.classList.add('edit-open'); }
-  function closeEditor() { document.body.classList.remove('edit-open', 'pick-open'); }
-
-  // ---- picker
-  let tab = 'apps';
-  function addButton(b) { if (L.buttons.length < 24) L.buttons.push(b); document.body.classList.remove('pick-open'); haptic(); save(); }
-  function grid(items) {
-    const g = document.createElement('div'); g.className = 'grid';
-    items.forEach(([b, html]) => {
-      const c = document.createElement('div'); c.className = 'cbtn';
-      c.innerHTML = '<span class="btn glass" style="width:58px;height:58px;border-radius:50%">' + html + '</span><span>' + esc(b.label) + '</span>';
-      c.addEventListener('click', () => addButton(b));
-      g.appendChild(c);
-    });
-    return g;
-  }
-  async function paintPicker() {
-    const seg = $('#pick-seg'); seg.innerHTML = '';
-    [['apps', T.apps], ['actions', T.actions], ['keys', T.keys], ['link', T.link]].forEach(([id, label]) => {
-      const b = document.createElement('button'); b.textContent = label; b.className = id === tab ? 'on' : '';
-      b.addEventListener('click', () => { tab = id; paintPicker(); });
-      seg.appendChild(b);
-    });
-    const body = $('#pick-body'); body.innerHTML = '';
-    if (tab === 'apps') {
-      let apps = [];
-      try { apps = await (await fetch('apps', { cache: 'no-store', headers: authHeaders() })).json(); } catch (e) { /* offline */ }
-      if (tab !== 'apps') return;
-      if (!apps.length) { const n = document.createElement('p'); n.className = 'note'; n.textContent = T.noApps; body.appendChild(n); return; }
-      body.appendChild(grid(apps.map(a => { const b = { t: 'app', pkg: a.pkg, label: a.label }; return [b, face(b)]; })));
-    } else if (tab === 'actions') {
-      body.appendChild(grid(ACTIONS.map(([a, label]) => { const b = { t: 'action', a, label }; return [b, face(b)]; })));
-    } else if (tab === 'keys') {
-      body.appendChild(grid(KEYS.map(([k, label, sym]) => { const b = { t: 'key', k, label, sym }; return [b, face(b)]; })));
-    } else {
-      const f = document.createElement('form');
-      f.innerHTML = '<input id="pick-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="' + esc(T.url) + '">'
-        + '<input id="pick-name" type="text" maxlength="24" placeholder="' + esc(T.name) + '">'
-        + '<button class="btn primary" style="height:48px;border-radius:24px;background:var(--accent);color:#fff;font-weight:600">' + esc(T.save) + '</button>';
-      f.addEventListener('submit', e => {
-        e.preventDefault();
-        let url = f.querySelector('#pick-url').value.trim();
-        if (!url) return;
-        if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
-        const name = f.querySelector('#pick-name').value.trim() || url.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0];
-        addButton({ t: 'url', url, label: name });
-      });
-      body.appendChild(f);
-    }
-  }
-
-  // ---- wiring
-  $('#edit-done').textContent = T.done;
-  $('#edit-reset').textContent = T.reset;
-  $('#edit-layout').textContent = T.layout;
-  $('#edit-buttons').textContent = T.buttons;
-  $('#edit-add').textContent = '+ ' + T.add;
-  $('#edit-feedback').textContent = T.feedback;
-  $('#edit-haptics b').textContent = T.haptics;
-  $('#edit-haptics small').textContent = T.hapticsSub;
-  $('#pick-back').textContent = '‹ ' + T.back;
-  $('#status').insertAdjacentHTML('beforeend', icon('i-edit'));
-  $('#status').addEventListener('click', openEditor);
-  $('#edit-done').addEventListener('click', closeEditor);
-  $('#edit-reset').addEventListener('click', () => { L = JSON.parse(JSON.stringify(DEFAULT)); save(); });
-  $('#edit-add').addEventListener('click', () => { document.body.classList.add('pick-open'); paintPicker(); });
-  $('#pick-back').addEventListener('click', () => document.body.classList.remove('pick-open'));
-  $('#edit-haptics').addEventListener('click', () => {
-    try { localStorage.setItem('udr-haptics', hapticsOn() ? 'off' : 'on'); } catch (e) { /* ignore */ }
-    paintEditor(); haptic();
-  });
-  render();
-  return { apply };
-})();
-
 // ---------------------------------------------------------------- mouse mode
 // A system-wide mouse: the projector shows Android's own pointer in every app (the server
 // drives a virtual USB mouse). One finger moves, a tap clicks, two fingers or the right
@@ -1267,114 +1053,367 @@ const mouseMode = (() => {
     document.body.classList.remove('mouse');
     try { sessionStorage.setItem('udr-mode', 'remote'); } catch (e) { /* ignore */ }
   }
-  $('#mouse-open').addEventListener('click', open);
   $('#mouse-back').addEventListener('click', close);
   $('#m-kb').addEventListener('click', openKeyboard);
   try { if (sessionStorage.getItem('udr-mode') === 'mouse') open(); } catch (e) { /* ignore */ }
   return { open, close };
 })();
 
-// ---------------------------------------------------------------- send and more
-// Send a photo, a video or a link to the projector, see what is on screen, set the sleep
-// timer; and the PIN prompt when the remote is protected.
-const more = (() => {
+// ---------------------------------------------------------------- control center
+// The remote is a grid of tiles, arranged like iOS Control Center. Tap the status pill (or
+// hold an empty spot) to edit: tiles wiggle, "−" removes one, the corner handle changes
+// its size, dragging moves it, and "Add a control" opens the gallery. The layout lives on
+// the projector ("l:"), so every phone shows the same remote.
+const cc = (() => {
   const T = fr ? {
-    done: 'OK', media: 'Photo ou vidéo', pick: 'Choisir dans Photos', pickSub: 'S’affiche en plein écran sur le projecteur',
-    link: 'Lien', open: 'Ouvrir', url: 'https://…', shot: 'Écran du projecteur', take: 'Faire une capture',
-    takeSub: 'Touche longuement l’image pour l’enregistrer ou la partager', sleep: 'Mise en veille',
-    off: 'Non', sleepAt: t => 'Le projecteur se met en veille à ' + t, sleepOff: 'Aucune minuterie',
-    sending: p => 'Envoi… ' + p + ' %', sent: 'Envoyé', failed: 'Échec de l’envoi', tooBig: 'Format non pris en charge',
-    pinTitle: 'Code PIN', pinSub: 'Saisis le code affiché dans UniDroid › Télécommande sur le projecteur.', pinWrong: 'Code incorrect'
+    done: 'OK', add: 'Ajouter une commande', back: 'Retour', remote: 'Télécommande', apps: 'Applis du projecteur',
+    actions: 'Réglages et écrans', keys: 'Touches', link: 'Lien',
+    noApps: 'Ouvre l’accueil UniDroid sur le projecteur une fois pour publier la liste des applis.',
+    url: 'Adresse (https://…)', name: 'Nom du bouton', save: 'Ajouter',
+    pad: 'Pavé', backKey: 'Retour', home: 'Accueil', allApps: 'Applis', play: 'Lecture', rew: 'Retour rapide', ff: 'Avance rapide',
+    mute: 'Muet', volume: 'Volume', keyboard: 'Clavier', mouse: 'Souris', browser: 'Navigateur', sleep: 'Mise en veille', off: 'Non',
+    min: m => m + ' min'
   } : {
-    done: 'Done', media: 'Photo or video', pick: 'Choose from Photos', pickSub: 'Shown full screen on the projector',
-    link: 'Link', open: 'Open', url: 'https://…', shot: 'Projector screen', take: 'Take a screenshot',
-    takeSub: 'Touch and hold the picture to save or share it', sleep: 'Sleep timer',
-    off: 'Off', sleepAt: t => 'The projector sleeps at ' + t, sleepOff: 'No timer',
-    sending: p => 'Sending… ' + p + ' %', sent: 'Sent', failed: 'Sending failed', tooBig: 'Unsupported format',
-    pinTitle: 'PIN code', pinSub: 'Enter the code set in UniDroid › Remote on the projector.', pinWrong: 'Wrong code'
+    done: 'Done', add: 'Add a control', back: 'Back', remote: 'Remote', apps: 'Projector apps',
+    actions: 'Settings and screens', keys: 'Keys', link: 'Link',
+    noApps: 'Open the UniDroid home screen on the projector once to publish the app list.',
+    url: 'Address (https://…)', name: 'Button name', save: 'Add',
+    pad: 'Touch pad', backKey: 'Back', home: 'Home', allApps: 'Apps', play: 'Play', rew: 'Rewind', ff: 'Fast forward',
+    mute: 'Mute', volume: 'Volume', keyboard: 'Keyboard', mouse: 'Mouse', browser: 'Browser', sleep: 'Sleep timer', off: 'Off',
+    min: m => m + ' min'
   };
-  $('#send-done').textContent = T.done;
-  $('#send-media-title').textContent = T.media;
-  $('#send-media b').textContent = T.pick;
-  $('#send-progress').textContent = T.pickSub;
-  $('#send-link-title').textContent = T.link;
-  $('#send-url').placeholder = T.url;
-  $('#send-go').textContent = T.open;
-  $('#send-shot-title').textContent = T.shot;
-  $('#send-shot b').textContent = T.take;
-  $('#send-shot small').textContent = T.takeSub;
-  $('#send-sleep-title').textContent = T.sleep;
-  $('#pin-title').textContent = T.pinTitle;
-  $('#pin-sub').textContent = T.pinSub;
+  // Built-in tiles: key = Android key held like a real remote, action = fired once, run = local.
+  const TYPES = {
+    pad: { label: T.pad, sizes: ['4x4'], once: true },
+    back: { label: T.backKey, icon: 'i-back', key: 4 },
+    home: { label: T.home, icon: 'i-home', key: 3 },
+    apps: { label: T.allApps, icon: 'i-apps', action: 'apps' },
+    play: { label: T.play, icon: 'i-playpause', key: 85 },
+    rew: { label: T.rew, icon: 'i-rew', key: 89 },
+    ff: { label: T.ff, icon: 'i-ff', key: 90 },
+    mute: { label: T.mute, icon: 'i-mute', key: 164 },
+    volume: { label: T.volume, icon: 'i-plus', sizes: ['2x1', '1x2'], once: true },
+    keyboard: { label: T.keyboard, icon: 'i-keyboard', run: () => openKeyboard() },
+    mouse: { label: T.mouse, icon: 'i-mouse', run: () => mouseMode.open() },
+    browser: { label: T.browser, icon: 'i-globe', action: 'browser' },
+    sleep: { label: T.sleep, icon: 'i-moon', once: true }
+  };
+  const ACTIONS = [
+    ['open:projection', 'Projection', 'i-desktop'], ['open:keystone', fr ? 'Trapèze' : 'Keystone', 'i-desktop'],
+    ['open:picture', fr ? 'Image' : 'Picture', 'i-sun'], ['open:sound', fr ? 'Son' : 'Sound', 'i-mute'],
+    ['hdmi', 'HDMI', 'i-hdmi'], ['open:wifi', 'Wi-Fi', 'i-wifi'], ['open:bluetooth', 'Bluetooth', 'i-bt'],
+    ['open:settings', fr ? 'Réglages UniDroid' : 'UniDroid settings', 'i-gear'], ['settings', fr ? 'Réglages Android' : 'Android settings', 'i-gear']
+  ];
+  const SLEEP = [0, 15, 30, 60, 90];
+  const DEFAULT = { v: 2, tiles: [
+    { t: 'pad', s: '4x4' },
+    { t: 'back', s: '1x1' }, { t: 'home', s: '1x1' }, { t: 'apps', s: '1x1' }, { t: 'keyboard', s: '1x1' },
+    { t: 'rew', s: '1x1' }, { t: 'play', s: '1x1' }, { t: 'ff', s: '1x1' }, { t: 'mouse', s: '1x1' },
+    { t: 'volume', s: '2x1' }, { t: 'mute', s: '1x1' }, { t: 'sleep', s: '1x1' }
+  ] };
+  const clone = o => JSON.parse(JSON.stringify(o));
+  let L = clone(DEFAULT);
+  let editing = false, sleepDeadline = 0;
+  const grid = $('#grid');
 
-  $('#send-open').addEventListener('click', () => document.body.classList.add('send-open'));
-  $('#send-done').addEventListener('click', () => document.body.classList.remove('send-open'));
+  const esc = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+  const icon = id => '<svg class="i"><use href="#' + id + '"/></svg>';
+  const sizesOf = tile => (TYPES[tile.t] && TYPES[tile.t].sizes) || ['1x1'];
+  function info(tile) {
+    const b = TYPES[tile.t];
+    if (b) return { label: b.label, face: icon(b.icon || 'i-apps') };
+    if (tile.t === 'app') return { label: tile.label, face: '<img alt="" src="icon?p=' + encodeURIComponent(tile.pkg) + '">' };
+    if (tile.t === 'action') { const a = ACTIONS.find(x => x[0] === tile.a) || []; return { label: tile.label, face: icon(a[2] || 'i-bolt') }; }
+    if (tile.t === 'url') return { label: tile.label, face: icon('i-globe') };
+    return { label: tile.label, face: '<span class="k">' + esc(tile.sym || '•') + '</span>' };
+  }
 
-  // ---- photo or video: streamed as the request body, progress shown
-  $('#send-file').addEventListener('change', () => {
-    const f = $('#send-file').files[0]; if (!f) return;
-    const x = new XMLHttpRequest();
-    x.open('POST', 'upload?name=' + encodeURIComponent(f.name || 'photo.jpg'));
-    x.setRequestHeader('X-UDR-Device', deviceId);
-    x.upload.onprogress = e => { if (e.lengthComputable) $('#send-progress').textContent = T.sending(Math.round(e.loaded * 100 / e.total)); };
-    x.onload = () => { $('#send-progress').textContent = x.status === 200 ? T.sent : (x.status === 400 ? T.tooBig : T.failed); haptic(); };
-    x.onerror = () => { $('#send-progress').textContent = T.failed; };
-    x.send(f);
-    $('#send-file').value = '';
-  });
+  // ---- pressing tiles (ignored while editing)
+  function holdKey(el, code) {
+    let held = false;
+    el.addEventListener('pointerdown', e => {
+      if (editing) return;
+      e.preventDefault(); el.setPointerCapture(e.pointerId);
+      held = true; el.classList.add('pressed'); haptic(); send('d:' + code);
+    });
+    const up = () => { if (!held) return; held = false; el.classList.remove('pressed'); send('u:' + code); };
+    el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+  }
+  function tapTile(el, fn) {
+    el.addEventListener('pointerdown', e => { if (editing) return; e.preventDefault(); el.classList.add('pressed'); });
+    el.addEventListener('pointerup', () => { if (!el.classList.contains('pressed')) return; el.classList.remove('pressed'); haptic(); fn(); });
+    el.addEventListener('pointerleave', () => el.classList.remove('pressed'));
+    el.addEventListener('pointercancel', () => el.classList.remove('pressed'));
+  }
 
-  // ---- link
-  $('#send-link').addEventListener('submit', e => {
-    e.preventDefault();
-    let u = $('#send-url').value.trim(); if (!u) return;
-    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-    send('a:url:' + u); haptic();
-    $('#send-url').value = ''; $('#send-url').blur();
-  });
+  // ---- render
+  function sleepLabel() {
+    const left = Math.ceil((sleepDeadline - Date.now()) / 60000);
+    return sleepDeadline > 0 && left > 0 ? T.min(left) : T.off;
+  }
+  function render() {
+    $('#padhome').appendChild($('#pad')); // keep the pad element (its gestures are bound once)
+    grid.innerHTML = '';
+    L.tiles.forEach((tile, idx) => {
+      if (!sizesOf(tile).includes(tile.s)) tile.s = sizesOf(tile)[0]; // older layouts had more sizes
+      const [w, h] = tile.s.split('x').map(Number);
+      const el = document.createElement('div');
+      el.className = 'tile glass';
+      el.style.gridColumn = 'span ' + w; el.style.gridRow = 'span ' + h;
+      el.dataset.i = idx;
+      const b = TYPES[tile.t];
+      if (tile.t === 'pad') {
+        el.classList.add('padtile'); el.appendChild($('#pad'));
+      } else if (tile.t === 'volume') {
+        el.classList.add('vol'); if (w > h) el.classList.add('h');
+        const minus = '<div class="half" data-k="25">' + icon('i-minus') + '</div>', plus = '<div class="half" data-k="24">' + icon('i-plus') + '</div>';
+        el.innerHTML = (w > h ? minus + '<div class="sep"></div>' + plus : plus + '<div class="sep"></div>' + minus);
+        el.querySelectorAll('.half').forEach(half => holdKey(half, half.dataset.k));
+      } else {
+        const it = info(tile);
+        const wide = w > 1;
+        if (w === 1 && h === 1) el.classList.add('round');
+        if (wide) el.classList.add('wide');
+        let sub = '';
+        let face = it.face;
+        if (tile.t === 'sleep') {
+          sub = sleepLabel(); el.classList.add('sleep');
+          const left = Math.ceil((sleepDeadline - Date.now()) / 60000);
+          el.classList.toggle('on', left > 0);
+          if (left > 0) face = '<span class="cd"><b>' + left + '</b><small>min</small></span>';
+        }
+        el.innerHTML = face + (wide ? '<span class="lab"><b>' + esc(it.label) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span>' : '');
+        el.setAttribute('aria-label', it.label);
+        if (b && b.key) holdKey(el, b.key);
+        else tapTile(el, () => press(tile));
+      }
+      // edit controls
+      const minus = document.createElement('button'); minus.className = 'minus'; minus.textContent = '−'; minus.setAttribute('aria-label', 'Remove');
+      minus.addEventListener('pointerdown', e => e.stopPropagation());
+      minus.addEventListener('click', e => { e.stopPropagation(); L.tiles.splice(idx, 1); haptic(); save(); });
+      el.appendChild(minus);
+      const sizes = sizesOf(tile);
+      if (sizes.length > 1) {
+        const sz = document.createElement('button'); sz.className = 'size'; sz.setAttribute('aria-label', 'Size');
+        sz.addEventListener('pointerdown', e => e.stopPropagation());
+        sz.addEventListener('click', e => { e.stopPropagation(); tile.s = sizes[(sizes.indexOf(tile.s) + 1) % sizes.length]; haptic(); save(); });
+        el.appendChild(sz);
+      }
+      draggable(el);
+      grid.appendChild(el);
+    });
+  }
+  function press(tile) {
+    const b = TYPES[tile.t];
+    if (tile.t === 'sleep') {
+      // Cycles Off → 15 → 30 → 60 → 90 → Off from what is set now.
+      const left = sleepDeadline > Date.now() ? Math.ceil((sleepDeadline - Date.now()) / 60000) : 0;
+      const next = SLEEP.find(m => m > left) || 0;
+      send('a:sleep:' + next);
+    } else if (b && b.action) send('a:' + b.action);
+    else if (b && b.run) b.run();
+    else if (tile.t === 'app') send('a:launch:' + tile.pkg);
+    else if (tile.t === 'action') send('a:' + tile.a);
+    else if (tile.t === 'url') send('a:url:' + tile.url);
+    else if (tile.t === 'key') { send('k:' + tile.k); }
+  }
 
-  // ---- screenshot
-  let shotUrl = null;
-  $('#send-shot').addEventListener('click', async () => {
+  // ---- drag to reorder (editing only)
+  function draggable(el) {
+    let start = null, grab = null, moving = false;
+    el.addEventListener('pointerdown', e => {
+      if (!editing) return;
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ }
+      const r = el.getBoundingClientRect();
+      start = { x: e.clientX, y: e.clientY }; grab = { x: e.clientX - r.left, y: e.clientY - r.top }; moving = false;
+    });
+    el.addEventListener('pointermove', e => {
+      if (!start) return;
+      if (!moving && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 6) return;
+      if (!moving) { moving = true; el.classList.add('drag'); haptic(); }
+      // Over another tile: take its place.
+      el.style.pointerEvents = 'none';
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      el.style.pointerEvents = '';
+      const other = under && under.closest('.tile');
+      if (other && other !== el && other.parentNode === grid) {
+        const kids = [...grid.children];
+        const from = kids.indexOf(el), to = kids.indexOf(other);
+        grid.insertBefore(el, from < to ? other.nextSibling : other);
+      }
+      el.style.transform = 'none';
+      const r = el.getBoundingClientRect();
+      el.style.transform = 'translate(' + (e.clientX - r.left - grab.x) + 'px,' + (e.clientY - r.top - grab.y) + 'px)';
+    });
+    const end = () => {
+      if (!start) return;
+      start = null;
+      if (!moving) return;
+      el.classList.remove('drag'); el.style.transform = '';
+      const order = [...grid.children].map(k => L.tiles[+k.dataset.i]);
+      L.tiles = order; save();
+    };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  }
+
+  // ---- edit mode
+  function edit(on) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    if (on) haptic();
+  }
+  $('#status').insertAdjacentHTML('beforeend', icon('i-edit'));
+  $('#status').addEventListener('click', () => edit(!editing));
+  $('#cc-done').textContent = T.done;
+  $('#cc-done').addEventListener('click', () => edit(false));
+  $('#cc-add').innerHTML = icon('i-plus') + esc(T.add);
+  $('#cc-add').addEventListener('click', openPicker);
+  // Holding an empty spot of the grid also starts editing, as in Control Center.
+  let emptyHold = 0;
+  grid.addEventListener('pointerdown', e => { if (e.target === grid) emptyHold = setTimeout(() => edit(true), 550); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => grid.addEventListener(n, () => clearTimeout(emptyHold)));
+
+  // ---- gallery
+  function gal(items) {
+    const g = document.createElement('div'); g.className = 'gal';
+    items.forEach(tile => {
+      const it = info(tile);
+      const c = document.createElement('div'); c.className = 'cbtn';
+      c.innerHTML = '<span class="btn glass">' + it.face + '</span><span>' + esc(it.label) + '</span>';
+      c.addEventListener('click', () => add(tile));
+      g.appendChild(c);
+    });
+    return g;
+  }
+  function h2(text, body) { const h = document.createElement('h2'); h.textContent = text; body.appendChild(h); }
+  function add(tile) {
+    tile.s = tile.s || sizesOf(tile)[0];
+    L.tiles.push(tile); haptic();
+    document.body.classList.remove('pick-open');
+    save();
+    setTimeout(() => grid.lastElementChild && grid.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  }
+  async function openPicker() {
+    const body = $('#pick-body'); body.innerHTML = '';
+    document.body.classList.add('pick-open');
+    const present = new Set(L.tiles.map(x => x.t));
+    h2(T.remote, body);
+    body.appendChild(gal(Object.keys(TYPES).filter(t => !(TYPES[t].once && present.has(t))).map(t => ({ t }))));
+    h2(T.actions, body);
+    body.appendChild(gal(ACTIONS.map(([a, label]) => ({ t: 'action', a, label }))));
+    h2(T.link, body);
+    const f = document.createElement('form');
+    f.innerHTML = '<input type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="' + esc(T.url) + '">'
+      + '<input type="text" maxlength="24" placeholder="' + esc(T.name) + '">'
+      + '<button class="btn" style="height:48px;border-radius:24px;background:var(--accent);color:#fff;font-weight:600">' + esc(T.save) + '</button>';
+    f.addEventListener('submit', e => {
+      e.preventDefault();
+      const [u, n] = f.querySelectorAll('input');
+      let url = u.value.trim(); if (!url) return;
+      if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+      add({ t: 'url', url, label: n.value.trim() || url.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] });
+    });
+    body.appendChild(f);
+    // Apps last: the list comes from the projector.
+    const appsTitle = document.createElement('h2'); appsTitle.textContent = T.apps;
+    body.insertBefore(appsTitle, body.children[2]);
+    let apps = [];
+    try { apps = await (await fetch('apps', { cache: 'no-store', headers: authHeaders() })).json(); } catch (e) { /* offline */ }
+    const holder = apps.length ? gal(apps.map(a => ({ t: 'app', pkg: a.pkg, label: a.label })))
+      : Object.assign(document.createElement('p'), { className: 'note', textContent: T.noApps });
+    body.insertBefore(holder, appsTitle.nextSibling);
+  }
+  $('#pick-back').textContent = '‹ ' + T.back;
+  $('#pick-back').addEventListener('click', () => document.body.classList.remove('pick-open'));
+
+  // ---- layout sync and sizing
+  function save() { render(); send('l:' + JSON.stringify(L)); }
+  function apply(json) {
     try {
-      const r = await fetch('screenshot', { cache: 'no-store', headers: authHeaders() });
-      if (!r.ok) return;
-      if (shotUrl) URL.revokeObjectURL(shotUrl);
-      shotUrl = URL.createObjectURL(await r.blob());
-      $('#shot').src = shotUrl; $('#shot').classList.add('on'); haptic();
-    } catch (e) { /* offline */ }
-  });
-
-  // ---- sleep timer
-  const MIN = [0, 15, 30, 60, 90];
-  const seg = $('#send-sleep');
-  MIN.forEach(m => {
-    const b = document.createElement('button');
-    b.textContent = m ? (m < 60 ? m + ' min' : (m / 60) + ' h' + (m % 60 ? ' 30' : '')) : T.off;
-    if (m === 90) b.textContent = '1 h 30';
-    b.addEventListener('click', () => { send('a:sleep:' + m); haptic(); });
-    seg.appendChild(b);
-  });
+      const o = JSON.parse(json);
+      L = o && o.v === 2 && Array.isArray(o.tiles) ? { v: 2, tiles: o.tiles.slice(0, 40) } : clone(DEFAULT);
+    } catch (e) { return; }
+    render();
+  }
   function sleepAt(t) {
-    $('#send-sleep-note').textContent = t > 0
-      ? T.sleepAt(new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : T.sleepOff;
+    sleepDeadline = t;
+    render();
   }
-  sleepAt(0);
+  const fit = () => grid.style.setProperty('--cell', Math.floor((grid.clientWidth - 36) / 4) + 'px');
+  window.addEventListener('resize', fit);
+  setInterval(() => { if (sleepDeadline > Date.now() - 60000 && !editing) render(); }, 20000);
+  fit(); render();
+  return { apply, sleepAt };
+})();
 
-  // ---- PIN
-  let asked = false;
-  function askPin() {
-    document.body.classList.add('pin-needed');
-    if (asked) { $('#pin-sub').textContent = T.pinWrong; $('#pin').value = ''; }
-    $('#pin').focus();
-  }
-  function pinOk() { document.body.classList.remove('pin-needed'); asked = false; $('#pin-sub').textContent = T.pinSub; }
-  $('#pin-form').addEventListener('submit', e => {
-    e.preventDefault();
-    const v = $('#pin').value.trim(); if (!/^\d{4,8}$/.test(v)) return;
-    asked = true;
-    if (ws && ws.readyState === 1) ws.send(helloMsg(v));
+// ---------------------------------------------------------------- pairing
+// The first time, the projector shows a 4-digit code; typing it here pairs this phone.
+const pairing = (() => {
+  const T = fr ? { title: 'Associer ce téléphone', sub: 'Saisis le code affiché sur le projecteur.', wrong: 'Code incorrect, réessaie.' }
+               : { title: 'Pair this phone', sub: 'Type the code shown on the projector.', wrong: 'Wrong code, try again.' };
+  $('#pin-title').textContent = T.title;
+  $('#pin-sub').textContent = T.sub;
+  const input = $('#pin');
+  function ask() { document.body.classList.add('pairing'); input.value = ''; input.focus(); }
+  function wrong() { ask(); $('#pin-sub').textContent = T.wrong; $('#pin-sub').classList.add('err'); }
+  function ok() { document.body.classList.remove('pairing'); $('#pin-sub').textContent = T.sub; $('#pin-sub').classList.remove('err'); input.blur(); }
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(0, 4);
+    if (input.value.length === 4 && ws && ws.readyState === 1) ws.send(helloMsg(input.value));
   });
-  return { askPin, pinOk, sleepAt };
+  $('#pin-form').addEventListener('submit', e => e.preventDefault());
+  return { ask, wrong, ok };
+})();
+
+// ---------------------------------------------------------------- remote theme
+// Per phone: an accent colour and light, dark or automatic mode.
+const theme = (() => {
+  const ACCENTS = ['#0a84ff', '#bf5af2', '#ff375f', '#ff9f0a', '#30d158', '#64d2ff'];
+  const T = fr ? { title: 'Thème', color: 'Couleur', mode: 'Apparence', modes: ['Auto', 'Sombre', 'Clair'], back: 'Retour' }
+               : { title: 'Theme', color: 'Colour', mode: 'Appearance', modes: ['Auto', 'Dark', 'Light'], back: 'Back' };
+  const MODES = ['', 'dark', 'light'];
+  let t = { accent: '', mode: '' };
+  try { t = Object.assign(t, JSON.parse(localStorage.getItem('udr-theme') || '{}')); } catch (e) { /* defaults */ }
+  function apply() {
+    const root = document.documentElement;
+    if (t.mode) root.dataset.theme = t.mode; else delete root.dataset.theme;
+    ['--accent', '--touch', '--rim', '--glow1'].forEach(v => root.style.removeProperty(v));
+    if (t.accent) {
+      const c = t.accent;
+      root.style.setProperty('--accent', c);
+      root.style.setProperty('--touch', c + '61');
+      root.style.setProperty('--rim', c + '99');
+      root.style.setProperty('--glow1', c + '33');
+    }
+    try { localStorage.setItem('udr-theme', JSON.stringify(t)); } catch (e) { /* ignore */ }
+  }
+  function open() {
+    const body = $('#pick-body'); body.innerHTML = '';
+    document.body.classList.add('pick-open');
+    const h = txt => { const e = document.createElement('h2'); e.textContent = txt; body.appendChild(e); };
+    h(T.color);
+    const dots = document.createElement('div'); dots.className = 'dots';
+    ACCENTS.forEach(c => {
+      const b = document.createElement('button'); b.style.background = c; b.setAttribute('aria-label', c);
+      b.classList.toggle('on', (t.accent || ACCENTS[0]) === c);
+      b.addEventListener('click', () => { t.accent = c === ACCENTS[0] ? '' : c; apply(); open(); });
+      dots.appendChild(b);
+    });
+    body.appendChild(dots);
+    h(T.mode);
+    const seg = document.createElement('div'); seg.className = 'seg';
+    MODES.forEach((m, i) => {
+      const b = document.createElement('button'); b.textContent = T.modes[i]; b.className = t.mode === m ? 'on' : '';
+      b.addEventListener('click', () => { t.mode = m; apply(); open(); });
+      seg.appendChild(b);
+    });
+    body.appendChild(seg);
+  }
+  $('#cc-theme').textContent = T.title;
+  $('#cc-theme').addEventListener('click', open);
+  apply();
+  return { open };
 })();
 
 connect();

@@ -65,6 +65,14 @@
         <!-- Remote-driven browser: started by the launcher or by the remote server (as root),
              never by other apps. Its own task, so Home and Back behave like a separate app. -->
         <activity
+            android:name=".PairActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="app.unidroid.pair"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar.Fullscreen" />
+
+        <activity
             android:name=".BrowserActivity"
             android:label="@string/browser"
             android:exported="false"
