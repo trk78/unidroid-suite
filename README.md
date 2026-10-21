@@ -21,6 +21,23 @@ UniDroid replaces the home screen of an Android TV box or projector and serves a
 open it from a QR code, add it to your home screen, and it works like an app. It was built for a rooted
 Magcubic HY300 projector, whose vendor launcher showed ads and whose settings were scattered across several apps.
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/launcher-home.png" alt="Home screen: favorites, UniDroid row and all apps" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/launcher-settings.png" alt="Settings by category" width="49%">
+  <img src="docs/screenshots/launcher-picture.png" alt="Picture settings" width="49%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/remote.png" alt="Phone remote" width="32%">
+  <img src="docs/screenshots/remote-edit.png" alt="Editing the remote like Control Center" width="32%">
+  <img src="docs/screenshots/remote-add.png" alt="Adding a control: remote keys, projector apps, settings" width="32%">
+</p>
+
 ## ✨ Features
 
 **Home screen**

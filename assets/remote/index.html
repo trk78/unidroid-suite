@@ -188,7 +188,12 @@ body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .2
 .tile.wide { justify-content: flex-start; padding: 0 16px; }
 .tile.padtile { background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .tile .pad { width: 100%; height: 100%; }
-.tile.vol { flex-direction: column; gap: 0; padding: 0; overflow: hidden; }
+.tile.vol { flex-direction: column; gap: 0; padding: 0; }
+/* No overflow clipping (it would cut the edit badge and handle): the halves round themselves. */
+.tile.vol .half:first-child { border-radius: 26px 26px 0 0; }
+.tile.vol .half:last-child { border-radius: 0 0 26px 26px; }
+.tile.vol.h .half:first-child { border-radius: 26px 0 0 26px; }
+.tile.vol.h .half:last-child { border-radius: 0 26px 26px 0; }
 .tile.vol.h { flex-direction: row; }
 .tile.vol .half { flex: 1; align-self: stretch; display: grid; place-items: center; }
 .tile.vol .half.pressed { background: var(--glass-hi); }

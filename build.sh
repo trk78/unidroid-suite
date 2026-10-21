@@ -17,8 +17,8 @@ ANDROID_JAR="$PLATFORM/android.jar"
 KEYSTORE="${KEYSTORE:-$HOME/.android/debug.keystore}"
 KEY_ALIAS="${KEY_ALIAS:-androiddebugkey}"
 KEY_PASS="${KEY_PASS:-android}"
-VERSION_CODE=21
-VERSION_NAME=1.0.0
+VERSION_CODE=22
+VERSION_NAME=1.0.1
 
 OUT="$DIR/build"
 rm -rf "$OUT" && mkdir -p "$OUT/gen" "$OUT/classes"
