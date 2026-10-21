@@ -211,7 +211,16 @@ body.typing .sheet { transform: none; opacity: 1; pointer-events: auto; }
 .sheet .done { background: var(--accent); color: #fff; }
 
 /* ---------- web mode: the projector shows the page, the phone holds the browser */
-#web { display: none; }
+#web, #mouse { display: none; }
+body.mouse .app { display: none; }
+body.mouse #mouse {
+  display: flex; flex-direction: column; gap: 14px; min-height: 100dvh; max-width: 520px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 16px);
+}
+#mouse header { gap: 12px; }
+.mtitle { font-size: 17px; font-weight: 600; }
+.hbtn { width: 44px; height: 44px; border-radius: 50%; }
+.hbtn .i { width: 22px; height: 22px; }
 body.web .app { display: none; }
 body.web #web {
   display: flex; flex-direction: column; gap: 14px; min-height: 100dvh; max-width: 520px; margin: 0 auto;
@@ -319,6 +328,7 @@ body.tabs-open .tabs { display: flex; }
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></symbol>
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.8 5 13.5h6l-1 7.7 8-10.7h-6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+    <symbol id="i-mouse" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="6.5" y="3" width="11" height="18" rx="5.5"/><path d="M12 3v6.5M12 9.5"/></g></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2 8.8-9.4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -326,6 +336,7 @@ body.tabs-open .tabs { display: flex; }
 <div class="app">
   <header>
     <div class="status glass" id="status" role="button"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
+    <button class="btn glass hbtn" id="mouse-open" aria-label="Mouse"><svg class="i"><use href="#i-mouse"/></svg></button>
     <button class="btn glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
 
@@ -383,6 +394,19 @@ body.tabs-open .tabs { display: flex; }
   <div class="top"><button class="btn glass" id="pick-back"></button></div>
   <div class="seg" id="pick-seg"></div>
   <div id="pick-body"></div>
+</div>
+
+<div id="mouse">
+  <header>
+    <button class="btn small glass" id="mouse-back" aria-label="Remote"><svg class="i"><use href="#i-remote"/></svg></button>
+    <span class="mtitle" id="mouse-title"></span>
+  </header>
+  <div class="track glass" id="mtrack"><span class="hint" id="mtrack-hint"></span><span class="strip" id="mstrip"></span></div>
+  <div class="webkeys">
+    <button class="btn glass" data-key="4" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+    <button class="btn glass" data-key="3" aria-label="Home"><svg class="i"><use href="#i-home"/></svg></button>
+    <button class="btn glass" id="m-kb" aria-label="Keyboard"><svg class="i"><use href="#i-keyboard"/></svg></button>
+  </div>
 </div>
 
 <div id="web">
@@ -1116,6 +1140,93 @@ const custom = (() => {
   });
   render();
   return { apply };
+})();
+
+// ---------------------------------------------------------------- mouse mode
+// A system-wide mouse: the projector shows Android's own pointer in every app (the server
+// drives a virtual USB mouse). One finger moves, a tap clicks, two fingers or the right
+// strip scroll, a long press then a slide drags.
+const mouseMode = (() => {
+  const T = fr ? { title: 'Souris', hint: 'Glisse pour bouger le pointeur · Touche pour cliquer<br>Deux doigts ou la bande de droite pour faire défiler<br>Appui long puis glisse pour déplacer' }
+               : { title: 'Mouse', hint: 'Slide to move the pointer · Tap to click<br>Two fingers or the right strip to scroll<br>Long press then slide to drag' };
+  $('#mouse-title').textContent = T.title;
+  $('#mtrack-hint').innerHTML = T.hint;
+  const track = $('#mtrack'), strip = $('#mstrip');
+  const pts = new Map();
+  let mode = 'move', moved = 0, downAt = 0, dragging = false, holdTimer = 0, frame = 0;
+  let mx = 0, my = 0, sv = 0, sh = 0;
+  const NOTCH = 18; // finger pixels per wheel notch
+  function flush() {
+    frame = 0;
+    const ix = Math.trunc(mx), iy = Math.trunc(my);
+    if (ix || iy) { send('m:' + ix + ' ' + iy); mx -= ix; my -= iy; }
+    const nv = Math.trunc(sv / NOTCH), nh = Math.trunc(sh / NOTCH);
+    if (nv || nh) { send('m:s ' + nv + ' ' + (-nh)); sv -= nv * NOTCH; sh -= nh * NOTCH; }
+  }
+  const queue = () => { if (!frame) frame = requestAnimationFrame(flush); };
+  track.addEventListener('touchstart', noDefault, { passive: false });
+  track.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    track.setPointerCapture(e.pointerId);
+    track.classList.add('touch', 'used');
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) {
+      moved = 0; downAt = performance.now(); dragging = false;
+      mode = e.target === strip ? 'strip' : 'move';
+      clearTimeout(holdTimer);
+      if (mode === 'move') holdTimer = setTimeout(() => {
+        if (moved < 8) { dragging = true; send('m:d'); haptic(); }
+      }, 450);
+    } else {
+      clearTimeout(holdTimer);
+      mode = 'scroll';
+    }
+  });
+  track.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const r = track.getBoundingClientRect();
+    track.style.setProperty('--x', (e.clientX - r.left) + 'px');
+    track.style.setProperty('--y', (e.clientY - r.top) + 'px');
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    if (mode === 'move') {
+      const gain = 1.6 + Math.min(2.4, Math.hypot(dx, dy) / 10); // faster swipes go further
+      mx += dx * gain; my += dy * gain;
+    } else if (mode === 'strip') {
+      sv += dy * 2;
+    } else {
+      sv += dy / pts.size; sh += dx / pts.size;
+    }
+    queue();
+  });
+  function up(e) {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pts.size) return;
+    clearTimeout(holdTimer);
+    track.classList.remove('touch');
+    flush();
+    if (dragging) { send('m:u'); dragging = false; }
+    else if (mode === 'move' && moved < 8 && performance.now() - downAt < 300) { send('m:c'); haptic(); }
+    mode = 'move';
+  }
+  track.addEventListener('pointerup', up);
+  track.addEventListener('pointercancel', up);
+
+  function open() {
+    document.body.classList.add('mouse');
+    try { sessionStorage.setItem('udr-mode', 'mouse'); } catch (e) { /* ignore */ }
+  }
+  function close() {
+    document.body.classList.remove('mouse');
+    try { sessionStorage.setItem('udr-mode', 'remote'); } catch (e) { /* ignore */ }
+  }
+  $('#mouse-open').addEventListener('click', open);
+  $('#mouse-back').addEventListener('click', close);
+  $('#m-kb').addEventListener('click', openKeyboard);
+  try { if (sessionStorage.getItem('udr-mode') === 'mouse') open(); } catch (e) { /* ignore */ }
+  return { open, close };
 })();
 
 connect();

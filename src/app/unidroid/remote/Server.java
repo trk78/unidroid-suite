@@ -35,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.7.0";
+    static final String VERSION = "0.8.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     /** The remote's layout and custom buttons, shared by every phone. */
@@ -56,6 +56,7 @@ public final class Server {
     private final java.util.List<OutputStream> sockets = new CopyOnWriteArrayList<>();
     private final BrowserRelay browser = new BrowserRelay(this::broadcast);
     private final TvServer tv = new TvServer();
+    private final VirtualMouse mouse = new VirtualMouse();
 
     private Server(String apk, Map<String, byte[]> files, Injector injector) {
         this.apk = apk;
@@ -446,6 +447,26 @@ public final class Server {
         return devices.hello(p[0], p[2], "1".equals(p[1]));
     }
 
+    /**
+     * Mouse mode: "<dx> <dy>" moves, "s <v> <h>" scrolls (wheel notches), "c" left click,
+     * "r" right click (Back in most apps), "d" / "u" left button down / up (drag).
+     */
+    private void mouse(String arg) {
+        String[] p = arg.split(" ");
+        try {
+            switch (p[0]) {
+                case "c": mouse.click(1); break;
+                case "r": mouse.click(2); break;
+                case "d": mouse.press(1, true); break;
+                case "u": mouse.press(1, false); break;
+                case "s": mouse.scroll(Integer.parseInt(p[1]), Integer.parseInt(p[2])); break;
+                default: mouse.move(Math.round(Float.parseFloat(p[0])), Math.round(Float.parseFloat(p[1])));
+            }
+        } catch (RuntimeException ignored) {
+            // Malformed message.
+        }
+    }
+
     private void onMessage(String msg, HeldKey held, OutputStream out) throws IOException {
         if (msg.equals("p")) {
             sendFrame(out, 0x1, new byte[] {'p'});
@@ -459,6 +480,9 @@ public final class Server {
                 return;
             case 'a':
                 actions.run(arg);
+                return;
+            case 'm':
+                mouse(arg);
                 return;
             case 'b': {
                 int n;
