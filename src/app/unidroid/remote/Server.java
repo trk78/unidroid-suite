@@ -35,7 +35,7 @@ import java.util.zip.ZipFile;
  *   CLASSPATH=<apk> app_process /system/bin app.unidroid.remote.Server <port> <apk>
  */
 public final class Server {
-    static final String VERSION = "0.8.0";
+    static final String VERSION = "0.10.0";
     private static final String ASSETS = "assets/remote/";
     private static final File DEVICES = new File("/data/local/tmp/unidroid/devices.tsv");
     /** The remote's layout and custom buttons, shared by every phone. */
@@ -57,6 +57,11 @@ public final class Server {
     private final BrowserRelay browser = new BrowserRelay(this::broadcast);
     private final TvServer tv = new TvServer();
     private final VirtualMouse mouse = new VirtualMouse();
+    private final Pin pin = new Pin();
+    private final HdmiWatch hdmiWatch;
+    private final java.util.concurrent.ScheduledExecutorService timer = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+    private java.util.concurrent.ScheduledFuture<?> sleepTask;
+    private volatile long sleepAt;
 
     private Server(String apk, Map<String, byte[]> files, Injector injector) {
         this.apk = apk;
@@ -65,6 +70,8 @@ public final class Server {
         // Lets open pages notice that the app was updated and reload themselves.
         this.pageId = Integer.toHexString(java.util.Arrays.hashCode(files.get("index.html")));
         this.actions = new Actions(injector);
+        this.hdmiWatch = new HdmiWatch(actions);
+        hdmiWatch.start();
     }
 
     public static void main(String[] args) throws Exception {
@@ -124,7 +131,8 @@ public final class Server {
             String method = parts[0];
             String target = parts[1];
 
-            String wsKey = null;
+            String wsKey = null, range = null, deviceHeader = null;
+            long contentLength = -1;
             boolean upgrade = false;
             String line;
             while ((line = readLine(in)) != null && !line.isEmpty()) {
@@ -133,6 +141,9 @@ public final class Server {
                 String name = line.substring(0, colon).trim().toLowerCase(Locale.ROOT);
                 String value = line.substring(colon + 1).trim();
                 if (name.equals("sec-websocket-key")) wsKey = value;
+                else if (name.equals("content-length")) contentLength = parseLong(value);
+                else if (name.equals("range")) range = value;
+                else if (name.equals("x-udr-device")) deviceHeader = value;
                 else if (name.equals("upgrade") && value.equalsIgnoreCase("websocket")) upgrade = true;
             }
 
@@ -150,6 +161,24 @@ public final class Server {
                 return;
             }
             boolean local = s.getInetAddress().isLoopbackAddress();
+            // With a PIN set, phones must be trusted (or give the PIN) to control the projector.
+            boolean allowed = local || pin.trusted(deviceHeader) || pin.admit(null, param(query, "pin"));
+            if (!allowed && guarded(path)) {
+                respond(out, 403, "text/plain", "pin", method.equals("HEAD"));
+                return;
+            }
+            if (method.equals("POST") && path.equals("/upload")) {
+                // A photo or video from a phone: store it, then show it in the browser.
+                s.setSoTimeout(60_000);
+                String name = Media.save(in, contentLength, param(query, "name"));
+                if (name == null) {
+                    respond(out, 400, "text/plain", "unsupported file", false);
+                } else {
+                    actions.run("url:http://127.0.0.1:" + s.getLocalPort() + "/view?f=" + name); // starts the browser if closed
+                    respond(out, 200, "text/plain", name, false);
+                }
+                return;
+            }
             if (!method.equals("GET") && !method.equals("HEAD")) {
                 respond(out, 405, "text/plain", "method not allowed", false);
                 return;
@@ -178,7 +207,7 @@ public final class Server {
                 }
                 case "/action": {
                     String action = param(query, "a");
-                    boolean ok = action != null && actions.run(action);
+                    boolean ok = action != null && action(action);
                     respond(out, ok ? 200 : 400, "text/plain", ok ? "ok" : "bad action", head);
                     break;
                 }
@@ -204,6 +233,24 @@ public final class Server {
                     respond(out, body != null ? 200 : 400, "text/plain", body != null ? body : "no", head);
                     break;
                 }
+                case "/screenshot": {
+                    byte[] png = screenshot();
+                    if (png == null) respond(out, 400, "text/plain", "no screenshot", head);
+                    else respond(out, 200, "image/png", png, head);
+                    break;
+                }
+                case "/view": {
+                    String f = param(query, "f");
+                    if (f == null || !f.matches("[0-9]+\\.[a-z0-9]{2,4}")) respond(out, 404, "text/plain", "no", head);
+                    else respond(out, 200, "text/html; charset=utf-8", Media.viewer(f), head);
+                    break;
+                }
+                case "/pin": {
+                    // Set or clear the PIN: the launcher only (loopback).
+                    boolean ok = local && (param(query, "clear") != null ? pin.set(null) : pin.set(param(query, "set")));
+                    respond(out, ok ? 200 : 400, "text/plain", ok ? "ok" : "no", head);
+                    break;
+                }
                 case "/forget": {
                     // Only the launcher, on the device itself, manages the device list.
                     boolean ok = local && devices.forget(param(query, "id"));
@@ -211,7 +258,8 @@ public final class Server {
                     break;
                 }
                 default:
-                    serveFile(out, path, head);
+                    if (path.startsWith("/media/")) Media.serve(out, path.substring(7), range, head);
+                    else serveFile(out, path, head);
             }
         } catch (IOException ignored) {
             // Client went away.
@@ -265,6 +313,80 @@ public final class Server {
         }
     }
 
+    /** Paths that act on the projector or show what is on it. */
+    private static boolean guarded(String path) {
+        switch (path) {
+            case "/key": case "/text": case "/action": case "/upload": case "/screenshot": case "/apps": case "/view":
+                return true;
+            default:
+                return path.startsWith("/media/");
+        }
+    }
+
+    /** Named actions; sleep and auto HDMI are kept here because the server owns them. */
+    private boolean action(String a) {
+        if (a.startsWith("autohdmi:")) {
+            hdmiWatch.set(a.endsWith("1"));
+            return true;
+        }
+        if (a.startsWith("sleep:")) {
+            try {
+                sleepIn(Integer.parseInt(a.substring(6)));
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return actions.run(a);
+    }
+
+    /**
+     * Sleep timer: puts the projector to sleep after this many minutes (0 cancels). The
+     * deadline goes to every phone ("z:<epoch ms>", 0 when off).
+     */
+    private synchronized void sleepIn(int minutes) {
+        if (sleepTask != null) sleepTask.cancel(false);
+        sleepTask = null;
+        sleepAt = 0;
+        if (minutes > 0 && minutes <= 600) {
+            sleepAt = System.currentTimeMillis() + minutes * 60_000L;
+            sleepTask = timer.schedule(() -> {
+                synchronized (this) {
+                    sleepAt = 0;
+                    sleepTask = null;
+                }
+                injector.tap(223); // KEYCODE_SLEEP
+                broadcast("z:0");
+            }, minutes, java.util.concurrent.TimeUnit.MINUTES);
+        }
+        broadcast("z:" + sleepAt);
+    }
+
+    /** The current picture as PNG, taken as root. */
+    private static byte[] screenshot() {
+        try {
+            Process p = new ProcessBuilder("screencap", "-p").start();
+            java.io.ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[64 * 1024];
+            int n;
+            try (InputStream in = p.getInputStream()) {
+                while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+            }
+            p.waitFor();
+            return buf.size() > 0 ? buf.toByteArray() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static long parseLong(String s) {
+        try {
+            return Long.parseLong(s.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
     /** App icons change rarely: let the phone keep them for a day. */
     private static void respondCached(OutputStream out, String type, byte[] body, boolean head) throws IOException {
         String headers = "HTTP/1.1 200 OK\r\nContent-Type: " + type + "\r\nContent-Length: " + body.length
@@ -301,7 +423,8 @@ public final class Server {
     }
 
     private static void respond(OutputStream out, int status, String type, byte[] body, boolean head) throws IOException {
-        String reason = status == 200 ? "OK" : status == 404 ? "Not Found" : status == 405 ? "Method Not Allowed" : "Bad Request";
+        String reason = status == 200 ? "OK" : status == 403 ? "Forbidden" : status == 404 ? "Not Found"
+                : status == 405 ? "Method Not Allowed" : "Bad Request";
         String headers = "HTTP/1.1 " + status + " " + reason + "\r\n"
                 + "Content-Type: " + type + "\r\n"
                 + "Content-Length: " + body.length + "\r\n"
@@ -335,7 +458,8 @@ public final class Server {
     /** For the launcher (loopback only): also the APK in use and the known devices. */
     private String localInfo() {
         String base = info();
-        return base.substring(0, base.length() - 1) + ",\"apk\":\"" + json(apk) + "\",\"devices\":" + devices.json() + "}";
+        return base.substring(0, base.length() - 1) + ",\"apk\":\"" + json(apk) + "\",\"devices\":" + devices.json()
+                + ",\"pin\":" + pin.required() + ",\"autohdmi\":" + HdmiWatch.enabled() + ",\"sleepAt\":" + sleepAt + "}";
     }
 
     static String json(String s) {
@@ -381,14 +505,11 @@ public final class Server {
         String hello = info();
         hello = hello.substring(0, hello.length() - 1) + ",\"page\":\"" + pageId + "\"}";
         sendFrame(out, 0x1, ("i:" + hello).getBytes(StandardCharsets.UTF_8));
-        byte[] layout = readFile(LAYOUT);
-        if (layout != null) sendFrame(out, 0x1, ("l:" + new String(layout, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8));
-        String browserState = browser.last();
-        if (browserState != null) sendFrame(out, 0x1, browserState.getBytes(StandardCharsets.UTF_8));
 
         HeldKey held = new HeldKey(injector);
         Devices.Device[] device = new Devices.Device[1];
-        sockets.add(out);
+        boolean admitted = !pin.required();
+        if (admitted) welcome(out);
         try {
             while (true) {
                 int b0 = in.read();
@@ -416,6 +537,18 @@ public final class Server {
                     sendFrame(out, 0xA, payload);
                 } else if (opcode == 0x1) {
                     String msg = new String(payload, StandardCharsets.UTF_8);
+                    if (!admitted) {
+                        // Only the hello (with the PIN when needed) is read until the phone is let in.
+                        if (!msg.startsWith("h:")) continue;
+                        String[] h = msg.substring(2).split("\t", 4);
+                        if (!pin.admit(h[0], h.length > 3 ? h[3] : null)) {
+                            sendFrame(out, 0x1, "x:pin".getBytes(StandardCharsets.UTF_8));
+                            continue;
+                        }
+                        admitted = true;
+                        sendFrame(out, 0x1, "x:ok".getBytes(StandardCharsets.UTF_8));
+                        welcome(out);
+                    }
                     if (msg.startsWith("h:") && device[0] == null) device[0] = hello(msg.substring(2));
                     else if (msg.startsWith("w:")) browser.send(msg.substring(2));
                     else if (msg.startsWith("l:")) saveLayout(msg.substring(2));
@@ -429,6 +562,16 @@ public final class Server {
         }
     }
 
+    /** Layout, sleep timer and browser state for a phone that was just let in. */
+    private void welcome(OutputStream out) throws IOException {
+        byte[] layout = readFile(LAYOUT);
+        if (layout != null) sendFrame(out, 0x1, ("l:" + new String(layout, StandardCharsets.UTF_8)).getBytes(StandardCharsets.UTF_8));
+        sendFrame(out, 0x1, ("z:" + sleepAt).getBytes(StandardCharsets.UTF_8));
+        String browserState = browser.last();
+        if (browserState != null) sendFrame(out, 0x1, browserState.getBytes(StandardCharsets.UTF_8));
+        sockets.add(out);
+    }
+
     private void broadcast(String message) {
         byte[] payload = message.getBytes(StandardCharsets.UTF_8);
         for (OutputStream o : sockets) {
@@ -440,9 +583,9 @@ public final class Server {
         }
     }
 
-    /** h:<id>TAB<1 when opened from the home screen>TAB<name> */
+    /** h:<id>TAB<1 when opened from the home screen>TAB<name>[TAB<pin>] */
     private Devices.Device hello(String arg) {
-        String[] p = arg.split("\t", 3);
+        String[] p = arg.split("\t", 4);
         if (p.length < 3) return null;
         return devices.hello(p[0], p[2], "1".equals(p[1]));
     }
@@ -479,7 +622,7 @@ public final class Server {
                 injector.type(arg);
                 return;
             case 'a':
-                actions.run(arg);
+                action(arg);
                 return;
             case 'm':
                 mouse(arg);

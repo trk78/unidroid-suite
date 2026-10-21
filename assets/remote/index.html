@@ -160,6 +160,20 @@ body[data-conn=offline] .pad::before { animation-play-state: paused; opacity: .2
 .cbtn .btn .k { font-size: 14px; font-weight: 700; pointer-events: none; }
 .cbtn span { font-size: 11.5px; color: var(--dim); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ---------- send sheet and PIN */
+body.send-open #send { display: flex; }
+.send .row { cursor: pointer; }
+.sendform { display: flex; gap: 8px; }
+.sendform input, .pinbox input { flex: 1; min-width: 0; height: 48px; border-radius: 14px; border: 0; padding: 0 14px; background: var(--field); color: var(--fg); font: inherit; -webkit-user-select: text; user-select: text; }
+.sendform .btn, .pinbox .btn { height: 48px; padding: 0 18px; border-radius: 24px; background: var(--accent); color: #fff; font-weight: 600; }
+#shot { display: none; width: 100%; border-radius: 14px; }
+#shot.on { display: block; }
+.pinbox { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; background: rgba(0,0,0,.6); padding: 24px; }
+body.pin-needed .pinbox { display: grid; }
+.pinbox form { display: flex; flex-direction: column; gap: 12px; width: min(340px, 100%); padding: 22px; border-radius: 24px; }
+.pinbox small { color: var(--dim); font-size: 14px; }
+.pinbox input { text-align: center; font-size: 24px; letter-spacing: .4em; }
+
 /* ---------- editor */
 body.edit-open #edit, body.pick-open #pick { display: flex; }
 .edit .row, .pick .row { cursor: pointer; }
@@ -336,6 +350,7 @@ body.tabs-open .tabs { display: flex; }
 <div class="app">
   <header>
     <div class="status glass" id="status" role="button"><span class="dot"></span><span id="dev">Connecting…</span><span id="lat"></span></div>
+    <button class="btn glass hbtn" id="send-open" aria-label="Send"><svg class="i"><use href="#i-share"/></svg></button>
     <button class="btn glass hbtn" id="mouse-open" aria-label="Mouse"><svg class="i"><use href="#i-mouse"/></svg></button>
     <button class="btn glass power" data-key="26" aria-label="Power"><svg class="i"><use href="#i-power"/></svg></button>
   </header>
@@ -388,6 +403,30 @@ body.tabs-open .tabs { display: flex; }
   <button class="btn glass add" id="edit-add"></button>
   <h2 id="edit-feedback"></h2>
   <div class="row glass" id="edit-haptics"><span class="t"><b></b><small></small></span><span class="switch"></span></div>
+</div>
+
+<div class="tabs send" id="send">
+  <div class="top"><button class="btn glass" id="send-done"></button></div>
+  <h2 id="send-media-title"></h2>
+  <label class="row glass" id="send-media"><span class="t"><b></b><small id="send-progress"></small></span>
+    <input type="file" id="send-file" accept="image/*,video/*" hidden></label>
+  <h2 id="send-link-title"></h2>
+  <form class="sendform" id="send-link"><input id="send-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off">
+    <button class="btn primary" id="send-go"></button></form>
+  <h2 id="send-shot-title"></h2>
+  <div class="row glass" id="send-shot"><span class="t"><b></b><small></small></span></div>
+  <img id="shot" alt="">
+  <h2 id="send-sleep-title"></h2>
+  <div class="seg" id="send-sleep"></div>
+  <p class="closed-note" id="send-sleep-note" style="display:block"></p>
+</div>
+
+<div class="pinbox" id="pinbox">
+  <form class="glass" id="pin-form">
+    <b id="pin-title"></b><small id="pin-sub"></small>
+    <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
+    <button class="btn primary" id="pin-go">OK</button>
+  </form>
 </div>
 
 <div class="tabs pick" id="pick">
@@ -504,13 +543,16 @@ function connect() {
   ws.onopen = () => {
     retry = 0;
     document.body.dataset.conn = 'online';
-    ws.send('h:' + deviceId + '\t' + (installed ? 1 : 0) + '\t' + deviceName);
+    ws.send(helloMsg(''));
     if (document.body.classList.contains('web')) ws.send('w:state');
     ping();
   };
   ws.onmessage = e => {
     if (e.data.startsWith('w:')) { web.state(e.data.slice(2)); return; }
     if (e.data.startsWith('l:')) { custom.apply(e.data.slice(2)); return; }
+    if (e.data === 'x:pin') { more.askPin(); return; }
+    if (e.data === 'x:ok') { more.pinOk(); return; }
+    if (e.data.startsWith('z:')) { more.sleepAt(+e.data.slice(2)); return; }
     if (e.data === 'p') {
       $('#lat').textContent = Math.max(1, Math.round(performance.now() - pingAt)) + ' ms';
     } else if (e.data.startsWith('i:')) {
@@ -541,6 +583,9 @@ document.addEventListener('visibilitychange', () => {
 
 // WebSocket first; plain HTTP as a fallback (no hold/repeat there).
 let pageId = null;
+const helloMsg = pin => 'h:' + deviceId + '\t' + (installed ? 1 : 0) + '\t' + deviceName + (pin ? '\t' + pin : '');
+/** Lets this phone's HTTP calls through when a PIN protects the remote. */
+const authHeaders = () => ({ 'X-UDR-Device': deviceId });
 function send(msg) {
   if (ws && ws.readyState === 1) { ws.send(msg); return; }
   const type = msg[0], arg = msg.slice(2);
@@ -1093,7 +1138,7 @@ const custom = (() => {
     const body = $('#pick-body'); body.innerHTML = '';
     if (tab === 'apps') {
       let apps = [];
-      try { apps = await (await fetch('apps', { cache: 'no-store' })).json(); } catch (e) { /* offline */ }
+      try { apps = await (await fetch('apps', { cache: 'no-store', headers: authHeaders() })).json(); } catch (e) { /* offline */ }
       if (tab !== 'apps') return;
       if (!apps.length) { const n = document.createElement('p'); n.className = 'note'; n.textContent = T.noApps; body.appendChild(n); return; }
       body.appendChild(grid(apps.map(a => { const b = { t: 'app', pkg: a.pkg, label: a.label }; return [b, face(b)]; })));
@@ -1227,6 +1272,109 @@ const mouseMode = (() => {
   $('#m-kb').addEventListener('click', openKeyboard);
   try { if (sessionStorage.getItem('udr-mode') === 'mouse') open(); } catch (e) { /* ignore */ }
   return { open, close };
+})();
+
+// ---------------------------------------------------------------- send and more
+// Send a photo, a video or a link to the projector, see what is on screen, set the sleep
+// timer; and the PIN prompt when the remote is protected.
+const more = (() => {
+  const T = fr ? {
+    done: 'OK', media: 'Photo ou vidéo', pick: 'Choisir dans Photos', pickSub: 'S’affiche en plein écran sur le projecteur',
+    link: 'Lien', open: 'Ouvrir', url: 'https://…', shot: 'Écran du projecteur', take: 'Faire une capture',
+    takeSub: 'Touche longuement l’image pour l’enregistrer ou la partager', sleep: 'Mise en veille',
+    off: 'Non', sleepAt: t => 'Le projecteur se met en veille à ' + t, sleepOff: 'Aucune minuterie',
+    sending: p => 'Envoi… ' + p + ' %', sent: 'Envoyé', failed: 'Échec de l’envoi', tooBig: 'Format non pris en charge',
+    pinTitle: 'Code PIN', pinSub: 'Saisis le code affiché dans UniDroid › Télécommande sur le projecteur.', pinWrong: 'Code incorrect'
+  } : {
+    done: 'Done', media: 'Photo or video', pick: 'Choose from Photos', pickSub: 'Shown full screen on the projector',
+    link: 'Link', open: 'Open', url: 'https://…', shot: 'Projector screen', take: 'Take a screenshot',
+    takeSub: 'Touch and hold the picture to save or share it', sleep: 'Sleep timer',
+    off: 'Off', sleepAt: t => 'The projector sleeps at ' + t, sleepOff: 'No timer',
+    sending: p => 'Sending… ' + p + ' %', sent: 'Sent', failed: 'Sending failed', tooBig: 'Unsupported format',
+    pinTitle: 'PIN code', pinSub: 'Enter the code set in UniDroid › Remote on the projector.', pinWrong: 'Wrong code'
+  };
+  $('#send-done').textContent = T.done;
+  $('#send-media-title').textContent = T.media;
+  $('#send-media b').textContent = T.pick;
+  $('#send-progress').textContent = T.pickSub;
+  $('#send-link-title').textContent = T.link;
+  $('#send-url').placeholder = T.url;
+  $('#send-go').textContent = T.open;
+  $('#send-shot-title').textContent = T.shot;
+  $('#send-shot b').textContent = T.take;
+  $('#send-shot small').textContent = T.takeSub;
+  $('#send-sleep-title').textContent = T.sleep;
+  $('#pin-title').textContent = T.pinTitle;
+  $('#pin-sub').textContent = T.pinSub;
+
+  $('#send-open').addEventListener('click', () => document.body.classList.add('send-open'));
+  $('#send-done').addEventListener('click', () => document.body.classList.remove('send-open'));
+
+  // ---- photo or video: streamed as the request body, progress shown
+  $('#send-file').addEventListener('change', () => {
+    const f = $('#send-file').files[0]; if (!f) return;
+    const x = new XMLHttpRequest();
+    x.open('POST', 'upload?name=' + encodeURIComponent(f.name || 'photo.jpg'));
+    x.setRequestHeader('X-UDR-Device', deviceId);
+    x.upload.onprogress = e => { if (e.lengthComputable) $('#send-progress').textContent = T.sending(Math.round(e.loaded * 100 / e.total)); };
+    x.onload = () => { $('#send-progress').textContent = x.status === 200 ? T.sent : (x.status === 400 ? T.tooBig : T.failed); haptic(); };
+    x.onerror = () => { $('#send-progress').textContent = T.failed; };
+    x.send(f);
+    $('#send-file').value = '';
+  });
+
+  // ---- link
+  $('#send-link').addEventListener('submit', e => {
+    e.preventDefault();
+    let u = $('#send-url').value.trim(); if (!u) return;
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    send('a:url:' + u); haptic();
+    $('#send-url').value = ''; $('#send-url').blur();
+  });
+
+  // ---- screenshot
+  let shotUrl = null;
+  $('#send-shot').addEventListener('click', async () => {
+    try {
+      const r = await fetch('screenshot', { cache: 'no-store', headers: authHeaders() });
+      if (!r.ok) return;
+      if (shotUrl) URL.revokeObjectURL(shotUrl);
+      shotUrl = URL.createObjectURL(await r.blob());
+      $('#shot').src = shotUrl; $('#shot').classList.add('on'); haptic();
+    } catch (e) { /* offline */ }
+  });
+
+  // ---- sleep timer
+  const MIN = [0, 15, 30, 60, 90];
+  const seg = $('#send-sleep');
+  MIN.forEach(m => {
+    const b = document.createElement('button');
+    b.textContent = m ? (m < 60 ? m + ' min' : (m / 60) + ' h' + (m % 60 ? ' 30' : '')) : T.off;
+    if (m === 90) b.textContent = '1 h 30';
+    b.addEventListener('click', () => { send('a:sleep:' + m); haptic(); });
+    seg.appendChild(b);
+  });
+  function sleepAt(t) {
+    $('#send-sleep-note').textContent = t > 0
+      ? T.sleepAt(new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : T.sleepOff;
+  }
+  sleepAt(0);
+
+  // ---- PIN
+  let asked = false;
+  function askPin() {
+    document.body.classList.add('pin-needed');
+    if (asked) { $('#pin-sub').textContent = T.pinWrong; $('#pin').value = ''; }
+    $('#pin').focus();
+  }
+  function pinOk() { document.body.classList.remove('pin-needed'); asked = false; $('#pin-sub').textContent = T.pinSub; }
+  $('#pin-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = $('#pin').value.trim(); if (!/^\d{4,8}$/.test(v)) return;
+    asked = true;
+    if (ws && ws.readyState === 1) ws.send(helloMsg(v));
+  });
+  return { askPin, pinOk, sleepAt };
 })();
 
 connect();

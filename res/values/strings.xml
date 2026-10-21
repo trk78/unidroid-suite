@@ -227,4 +227,22 @@
     <string name="about_cpu">Processor speed</string>
     <string name="about_mhz">%1$d of %2$d MHz</string>
     <string name="about_throttled">slowed down by heat</string>
+
+    <!-- Sleep timer, auto HDMI, PIN -->
+    <string name="auto_hdmi">Switch to HDMI automatically</string>
+    <string name="auto_hdmi_sub">When the HDMI device wakes up (Apple TV, console…)</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_in">Sleep in</string>
+    <string name="minutes">%1$d min</string>
+    <string name="sleep_at">The projector sleeps at %1$s</string>
+    <string name="remote_security">Security</string>
+    <string name="pin">PIN code</string>
+    <string name="pin_on">On: a new phone must enter it once</string>
+    <string name="pin_off">Off: any phone on your Wi-Fi can control the projector</string>
+    <string name="pin_help">Pick 4 digits with Left and Right. Every phone will ask for it once.</string>
+    <string name="pin_digit">Digit %1$d</string>
+    <string name="pin_save">Turn on this PIN</string>
+    <string name="pin_saved">PIN %1$s on: enter it on each phone</string>
+    <string name="pin_remove">Turn the PIN off</string>
+    <string name="pin_remove_sub">Any phone on your Wi-Fi can control the projector again</string>
 </resources>

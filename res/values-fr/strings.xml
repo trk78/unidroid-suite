@@ -225,4 +225,22 @@
     <string name="about_cpu">Vitesse du processeur</string>
     <string name="about_mhz">%1$d sur %2$d MHz</string>
     <string name="about_throttled">ralenti par la chaleur</string>
+
+    <!-- Sleep timer, auto HDMI, PIN -->
+    <string name="auto_hdmi">Passer en HDMI automatiquement</string>
+    <string name="auto_hdmi_sub">Quand l’appareil HDMI s’allume (Apple TV, console…)</string>
+    <string name="sleep_timer">Minuterie de mise en veille</string>
+    <string name="sleep_in">Mise en veille dans</string>
+    <string name="minutes">%1$d min</string>
+    <string name="sleep_at">Le projecteur se met en veille à %1$s</string>
+    <string name="remote_security">Sécurité</string>
+    <string name="pin">Code PIN</string>
+    <string name="pin_on">Activé : un nouveau téléphone doit le saisir une fois</string>
+    <string name="pin_off">Désactivé : tout téléphone sur ton Wi-Fi peut piloter le projecteur</string>
+    <string name="pin_help">Choisis 4 chiffres avec Gauche et Droite. Chaque téléphone le demandera une fois.</string>
+    <string name="pin_digit">Chiffre %1$d</string>
+    <string name="pin_save">Activer ce code</string>
+    <string name="pin_saved">Code %1$s activé : saisis-le sur chaque téléphone</string>
+    <string name="pin_remove">Désactiver le code</string>
+    <string name="pin_remove_sub">Tout téléphone sur ton Wi-Fi pourra de nouveau piloter le projecteur</string>
 </resources>

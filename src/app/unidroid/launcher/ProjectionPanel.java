@@ -62,12 +62,14 @@ final class ProjectionPanel {
     void open() {
         sheet.open(R.drawable.ic_projector, act.getString(R.string.projection), act.getString(R.string.projection_sub), COLOR, null);
         sheet.note(act.getString(R.string.loading));
-        Tv.read(new String[] {Tv.MIRROR}, v -> {
-            if (sheet.isOpen()) render(v[0]);
-        });
+        Tv.read(new String[] {Tv.MIRROR}, v -> RemoteLink.refresh(act, false, s -> {
+            if (sheet.isOpen()) render(v[0], s);
+        }));
     }
 
-    private void render(int mirror) {
+    private static final int[] SLEEP_MINUTES = {0, 15, 30, 45, 60, 90, 120};
+
+    private void render(int mirror, RemoteLink.State state) {
         sheet.clear();
         sheet.section(act.getString(R.string.keystone));
         sheet.item(R.drawable.ic_projector, act.getString(R.string.keystone_manual), act.getString(R.string.keystone_manual_sub), v -> {
@@ -94,6 +96,23 @@ final class ProjectionPanel {
         if (hasHdmi(act)) {
             sheet.section(act.getString(R.string.source));
             sheet.item(R.drawable.ic_hdmi, act.getString(R.string.hdmi), act.getString(R.string.hdmi_sub), v -> openHdmi(act));
+            if (state.running) {
+                sheet.toggle(0, act.getString(R.string.auto_hdmi), act.getString(R.string.auto_hdmi_sub), state.autoHdmi,
+                        on -> RemoteLink.call("/action?a=autohdmi:" + (on ? 1 : 0)));
+            }
+        }
+        if (state.running) {
+            sheet.section(act.getString(R.string.sleep_timer));
+            String[] labels = new String[SLEEP_MINUTES.length];
+            labels[0] = act.getString(R.string.off);
+            for (int i = 1; i < labels.length; i++) labels[i] = act.getString(R.string.minutes, SLEEP_MINUTES[i]);
+            Sheet.Row timer = sheet.choice(0, act.getString(R.string.sleep_in), labels, 0, i -> {
+                RemoteLink.call("/action?a=sleep:" + SLEEP_MINUTES[i]);
+            });
+            if (state.sleepAt > 0) {
+                timer.value(act.getString(R.string.sleep_at,
+                        android.text.format.DateFormat.getTimeFormat(act).format(new java.util.Date(state.sleepAt))));
+            }
         }
         vendorRows();
         sheet.focus();

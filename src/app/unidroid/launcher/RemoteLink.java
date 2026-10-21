@@ -41,6 +41,12 @@ final class RemoteLink {
         /** Address to open on a phone, e.g. http://192.168.1.87:8080 */
         String url;
         final List<Device> devices = new ArrayList<>();
+        /** A PIN protects the remote. */
+        boolean pin;
+        /** Switch to HDMI when the HDMI device wakes up. */
+        boolean autoHdmi;
+        /** When the sleep timer fires (epoch ms), 0 when off. */
+        long sleepAt;
 
         boolean anyInstalled() {
             for (Device d : devices) if (d.installed) return true;
@@ -119,6 +125,9 @@ final class RemoteLink {
         try {
             JSONObject o = new JSONObject(json);
             s.running = true;
+            s.pin = o.optBoolean("pin");
+            s.autoHdmi = o.optBoolean("autohdmi");
+            s.sleepAt = o.optLong("sleepAt");
             JSONArray arr = o.optJSONArray("devices");
             if (arr != null) {
                 for (int i = 0; i < arr.length(); i++) {
@@ -138,6 +147,11 @@ final class RemoteLink {
             s.running = false;
         }
         return s;
+    }
+
+    /** Fire-and-forget GET on the local remote server, off the main thread. */
+    static void call(String path) {
+        new Thread(() -> get(path), "remote-call").start();
     }
 
     /** Blocking GET on the local remote server; null when it fails. Never on the main thread. */
