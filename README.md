@@ -3,11 +3,12 @@
 # UniDroid Suite
 
 **A fast home screen for Android TV boxes and projectors, with a phone remote built in.**
-Free · No ads · No account · No cloud · One ~370 KB app
+Free · No ads · No account · No cloud · One ~430 KB app
 
-### [⬇ Build and install](#-build-and-install)
+### [⬇ Download UniDroid 1.0.0](https://github.com/trk78/unidroid-suite/releases/latest)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-0a84ff.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/trk78/unidroid-suite?color=0a84ff)](https://github.com/trk78/unidroid-suite/releases/latest)
 ![Android](https://img.shields.io/badge/Android_5+-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white)
 ![Android TV](https://img.shields.io/badge/Android_TV-3DDC84?logo=androidtv&logoColor=white)
@@ -16,9 +17,9 @@ Free · No ads · No account · No cloud · One ~370 KB app
 
 ---
 
-UniDroid Suite merges two projects that used to live apart: **UniDroid Launcher**, a home screen for TV devices,
-and **UniDroid Remote**, a web remote served by the device itself. One app now does both. The launcher runs the
-remote server and shows a QR code until a phone has added the remote to its home screen.
+UniDroid replaces the home screen of an Android TV box or projector and serves a remote control to your phone:
+open it from a QR code, add it to your home screen, and it works like an app. It was built for a rooted
+Magcubic HY300 projector, whose vendor launcher showed ads and whose settings were scattered across several apps.
 
 ## ✨ Features
 
@@ -27,34 +28,52 @@ remote server and shows a QR code until a phone has added the remote to its home
 | | |
 |---|---|
 | ⚡ **Light** | Plain Android views, no AndroidX, no Gradle: opens instantly on 1 GB devices |
-| ⭐ **Favorites** | Big 16:9 app banners, three sizes. Hold OK on any app for its menu: pin, move, hide, app info, uninstall |
-| 🎨 **Customizable** | Background (app colour, accent, plain black), six accent colours, clock on/off, rows on/off, hidden apps |
-| 🪟 **Native panels** | One Settings menu by category: projector (keystone, projection mode, zoom, picture, sound), network (Wi-Fi, Bluetooth), home screen, system (sleep timer, about) |
-| 📐 **Keystone** | Full-screen editor: OK picks a corner, arrows move it (faster while held), hold OK to reset (rooted Allwinner H713 projectors) |
-| 🌐 **Remote-driven browser** | The projector shows only the page and a pointer; address bar, tabs, bookmarks, back/forward, zoom and desktop/mobile mode are on the phone; Back on the TV remote leaves it |
+| ⭐ **Favorites** | Big 16:9 app banners. Hold OK on any app for its menu: pin, move, hide, app info, uninstall |
+| 🎨 **Looks** | Backgrounds (app glow, animated aurora and nebula, gradient, halo, black) in six palettes, accent colour, four clock styles |
+| 🧩 **Layout** | Row order, apps sorted by name or in your own order, icon size, app names on or off, hidden apps |
+| 🪟 **One Settings menu** | Projector (keystone, projection mode, zoom, picture, sound), network (Wi-Fi, Bluetooth), home screen, system (sleep timer, about) |
+| 📐 **Keystone** | Full-screen editor: OK picks a corner, arrows move it, hold OK to reset; zoom shrinks the picture evenly on top |
+| 🖼️ **Picture** | Brightness, contrast, saturation, hue, sharpness, light output and colour temperature, through the projector's own picture service |
+| 📺 **HDMI** | One tile opens the HDMI input; optionally switch to it when the HDMI device wakes up (HDMI-CEC) |
+| 🌐 **Remote-driven browser** | The projector shows only the page; address bar, tabs, bookmarks and a track pad are on the phone |
 | 🌍 **English and French** | Follows the device language |
 
 **Phone remote**
 
 | | |
 |---|---|
-| 🖱️ **Track pad for the web** | In the Web tab: slide to move the pointer, tap to click, two fingers or the side strip to scroll, the phone keyboard types into the page |
-| 🎛️ **Customizable remote** | A grid of tiles like iOS Control Center: tap the status pill to edit, drag to move, − to remove, the corner handle to resize, and add controls (projector apps, screens, keys, links, sleep timer, mouse). The layout is stored on the projector, shared by every phone |
-| 🔐 **Pairing** | A new phone types a 4-digit code shown on the TV, once; only paired phones can control the projector |
-| 🖱️ **Mouse mode** | A virtual mouse (Android's hid tool) gives the native pointer, clicks and scrolling in every app |
-| 📷 **QR code on the TV** | Scan it with the phone camera; once the remote is on the phone's home screen, the tile shows the phone and when it was last seen instead |
+| 🎛️ **Control Center layout** | A grid of tiles like iOS Control Center: tap the status pill to edit, drag to move, − to remove, add projector apps, settings screens, links, the sleep timer or the mouse |
+| 🔐 **Pairing** | A new phone types a 4-digit code shown on the TV, once. Only paired phones control the projector |
+| 🖱️ **Mouse mode** | A virtual mouse: Android's own pointer, clicks and scrolling in every app |
+| 🎯 **Touch pad** | Tap an edge for a direction, swipe to scroll fast, hold to repeat |
+| ⌨️ **Live keyboard** | What you type on the phone appears on the TV as you type, accents included |
+| 🌙 **Sleep timer** | One tile: 15, 30, 60 or 90 minutes, with the minutes left on it |
+| 🎨 **Theme** | Per phone: six colours, light, dark or automatic |
 | ⚡ **Instant** | 6–8 ms per key press over Wi-Fi: one persistent process injects keys, nothing is spawned per press |
-| 🎯 **Apple TV-style touch pad** | Tap an edge for a direction, swipe to scroll fast, hold to repeat |
-| ⌨️ **Live keyboard** | What you type on the phone appears on the TV as you type, accents included (also in web pages) |
 | 📲 **Installs like an app** | Add it to the home screen: full screen, own icon (iOS and Android) |
-| 🔌 **API** | HTTP and WebSocket commands for scripts, home automation or iOS Shortcuts |
-| 🔒 **Local only** | No internet, no telemetry, no shell: commands only become key events |
+| 🔒 **Local only** | No internet, no telemetry, no shell: commands only become key events and whitelisted actions |
+
+## 🚀 Install
+
+You need a rooted device (Magisk) for the remote, keystone, picture and mouse. The home screen works without root.
+
+1. Download `unidroid-1.0.0.apk` from the [latest release](https://github.com/trk78/unidroid-suite/releases/latest).
+2. Install it and make it the home app:
+   ```bash
+   adb install -r unidroid-1.0.0.apk
+   adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
+   ```
+3. Press **Home**. Magisk asks once for root: grant it.
+4. On your phone, scan the QR code on the **Remote** tile, type the code shown on the TV, then **Share → Add to Home Screen** (iPhone).
+
+Tip: reserve the projector's IP address in your router, so the phone app always finds it.
 
 ## ⚙️ How it works
 
 The app holds both sides. The home screen is a normal Android app. The remote server is a small Java program
 in the same APK, started as root with `app_process` (the way [scrcpy](https://github.com/Genymobile/scrcpy) runs
-its server). It serves the remote page from the APK and injects key events with `InputManager.injectInputEvent`.
+its server). It serves the remote page from the APK, injects key events with `InputManager.injectInputEvent`
+and calls the projector's vendor services.
 
 ```mermaid
 sequenceDiagram
@@ -64,55 +83,39 @@ sequenceDiagram
     participant P as Phone
 
     L->>S: Starts it with app_process (su)
-    L->>S: GET /info
-    S-->>L: No phone has installed the remote
-    L->>U: Remote tile shows a QR code
-    U->>P: Scans it, adds the page to the home screen
-    P->>S: WebSocket /ws, "h:" hello (id, installed)
-    L->>S: GET /info (every 5 s)
-    S-->>L: iPhone, installed, connected
-    L->>U: Tile shows the phone and its status
+    U->>P: Scans the QR code
+    P->>S: WebSocket /ws, "h:" hello
+    S->>L: Shows a 4-digit code on the TV
+    U->>P: Types the code
+    S-->>P: x:ok, then the layout of the remote
     U->>P: Presses Right on the pad
     P->>S: d:22 then u:22
     S->>S: injectInputEvent
 ```
 
 1. The home screen, panels and settings are built in code, without XML layouts: [`src/app/unidroid/launcher/`](src/app/unidroid/launcher/).
-2. [`RemoteLink.java`](src/app/unidroid/launcher/RemoteLink.java) starts the server as root, restarts it after an app update (new APK path) and reads its state. A standalone UniDroid Remote Magisk module, if present, is retired.
-3. The server keeps a list of the phones that opened the remote ([`Devices.java`](src/app/unidroid/remote/Devices.java)). A page opened from the home screen reports itself as installed; that switches the tile from the QR code to the status button.
-4. The QR code is drawn by a small encoder with no dependency: [`QrCode.java`](src/app/unidroid/launcher/QrCode.java).
-5. The browser ([`BrowserActivity.java`](src/app/unidroid/launcher/BrowserActivity.java)) is a full-screen WebView with a drawn pointer. Clicks are real mouse events (no tap-to-zoom, hover works) and scrolling is a mouse wheel at the pointer. Its control socket listens on 127.0.0.1:8090 only; the remote server relays the phone's `w:` messages to it and sends its state (tabs, address, progress) back to every phone ([`BrowserRelay.java`](src/app/unidroid/remote/BrowserRelay.java)).
-6. Keystone sends four corners to SurfaceFlinger (transaction 1050) as fractions of the screen, through a root helper that only applies the latest position: [`KeystoneDaemon.java`](src/app/unidroid/launcher/KeystoneDaemon.java).
+2. [`RemoteLink.java`](src/app/unidroid/launcher/RemoteLink.java) starts the server as root, restarts it after an app update (new APK path) and reads its state.
+3. Pairing: [`Pairing.java`](src/app/unidroid/remote/Pairing.java) keeps the paired phones and asks [`PairActivity`](src/app/unidroid/launcher/PairActivity.java) to show the code over whatever is on screen.
+4. The remote layout is stored on the projector and pushed to every phone, so all phones show the same remote.
+5. Picture and projection mode use the Allwinner HIDL service `vendor.aw.homlet.tvsystem.tvserver@1.0::ITvServer`, the same calls as the vendor's settings app ([`TvServer.java`](src/app/unidroid/remote/TvServer.java)).
+6. Keystone and zoom send four corners to SurfaceFlinger (transaction 1050) as fractions of the screen ([`KeystoneDaemon.java`](src/app/unidroid/launcher/KeystoneDaemon.java)).
+7. Mouse mode registers a virtual USB mouse with Android's `hid` tool (`/dev/uhid`): [`VirtualMouse.java`](src/app/unidroid/remote/VirtualMouse.java).
+8. Auto HDMI follows the HDMI-CEC service's log for the HDMI device waking up: [`HdmiWatch.java`](src/app/unidroid/remote/HdmiWatch.java).
+9. Animated backgrounds only move a few blurred shapes drawn once into hardware layers: nothing is redrawn per frame ([`Backdrop.java`](src/app/unidroid/launcher/Backdrop.java)).
 
 **Why not `input keyevent`?** It starts a new Java VM on every press: about **2 s per key** on a low-end
 projector (measured on an Allwinner H713 with 1 GB of RAM). The persistent server answers in milliseconds.
 
-### Remote controls
-
-| Gesture | Action |
-|---|---|
-| Tap the pad edge / centre | Direction / OK |
-| Swipe on the pad | One step every ~34 px |
-| Hold on the pad edge or any button | Key repeat / long-press |
-| ⚙ / Apps buttons | Android settings / the home screen's app row |
-| Keyboard button | Live typing, ⌫ and ⏎ |
-| Arrow keys, Enter, Esc, Space (desktop) | D-pad, OK, Back, Play/Pause |
-
-## 🚀 Build and install
+## 🛠️ Build from source
 
 Requirements: a JDK 11+, the Android SDK (any platform + build-tools), Python 3 and `adb`.
-The remote and keystone need root (Magisk); the home screen works without it.
 
 ```bash
 git clone https://github.com/trk78/unidroid-suite.git
 cd unidroid-suite
 ./build.sh
 adb install -r build/unidroid.apk
-adb shell cmd package set-home-activity app.unidroid.launcher/.HomeActivity
 ```
-
-Press **Home**: the launcher starts the remote server (Magisk asks once for root). Scan the QR code on the
-**Remote** tile with your phone, then **Share → Add to Home Screen** on iPhone.
 
 | Command | Effect |
 |---|---|
@@ -122,32 +125,35 @@ Press **Home**: the launcher starts the remote server (Magisk asks once for root
 
 ## 🔌 API
 
-The remote server listens on port 8080. Everything the page does is available to your own scripts.
+The remote server listens on port 8080. Calls from the network need a paired phone: send its id in the
+`X-UDR-Device` header (the page does this itself).
 
 | HTTP GET | Example |
 |---|---|
 | `/key?k=<key>` | `/key?k=DPAD_UP`, `/key?k=HOME`, `/key?k=26` |
 | `/text?t=<text>` | `/text?t=hello%20world` |
-| `/action?a=<action>` | `settings`, `apps`, `keystone`, `browser`, `launch:com.google.android.youtube.tv` |
-| `/info` | `{"name":"HY300","maker":"askey","android":"11","version":"0.4.0"}` (from the device itself: also the APK in use and the known phones) |
+| `/action?a=<action>` | `apps`, `browser`, `hdmi`, `settings`, `open:<screen>`, `launch:<package>`, `url:<address>`, `sleep:<minutes>`, `autohdmi:<0\|1>` |
+| `/apps`, `/icon?p=<package>` | The projector's apps and their icons |
+| `/info` | Device name, Android version, server version |
+
+`<screen>` is one of `apps`, `remote`, `keystone`, `projection`, `picture`, `sound`, `wifi`, `bluetooth`, `settings`, `about`.
 
 **WebSocket** `/ws`, one text message per command:
 
 | Message | Effect |
 |---|---|
-| `h:<id>␉<0\|1>␉<name>` | First message: who the page is, and whether it runs from the home screen |
+| `h:<id>␉<0\|1>␉<name>[␉<code>]` | Hello: who the page is, whether it runs from the home screen, and the pairing code when asked (`x:pair`, `x:wrong`, `x:ok`) |
 | `d:<key>` / `u:<key>` | Key down (repeats while held) / key up |
 | `k:<key>` | Tap |
-| `t:<text>` | Type text |
-| `b:<n>` | `n` backspaces |
-| `a:<action>` | Same actions as `/action` (also `browser`) |
-| `w:<command>` | Browser: `show`, `open <url or search>`, `new [url]`, `tab <id>`, `close <id>`, `back`, `forward`, `reload`, `stop`, `move <dx> <dy>`, `click`, `scroll <dx> <dy>`, `zoom in\|out`, `mode desktop\|mobile`, `type <text>`, `del <n>`, `enter` (typed straight into the page's focused field), `exit`, `state`. The browser answers `w:<json>` with its tabs and state |
-| `p` | Ping, answered with `p` (the page shows the round trip) |
+| `t:<text>` / `b:<n>` | Type text / `n` backspaces |
+| `a:<action>` | Same actions as `/action` |
+| `m:<dx> <dy>`, `m:c`, `m:d`, `m:u`, `m:s <v> <h>` | Mouse: move, click, button down, button up, scroll |
+| `l:<json>` | Save the remote layout (sent to every phone) |
+| `w:<command>` | Browser: `show`, `open <url or search>`, `new`, `tab <id>`, `close <id>`, `back`, `forward`, `reload`, `move`, `click`, `scroll`, `zoom`, `mode`, `type`, `del`, `enter`, `exit`, `state` |
+| `p` | Ping, answered with `p` |
 
-`<key>` is an Android keycode number or name (`22`, `DPAD_RIGHT`, `KEYCODE_DPAD_RIGHT`).
-
-The home screen also opens screens on request:
-`adb shell am start -n app.unidroid.launcher/.HomeActivity --es open apps|remote|keystone`.
+The server also sends `z:<epoch ms>` (sleep timer deadline, 0 when off). `<key>` is an Android keycode
+number or name (`22`, `DPAD_RIGHT`, `KEYCODE_DPAD_RIGHT`).
 
 ## 🗂️ Project structure
 
@@ -156,27 +162,30 @@ The home screen also opens screens on request:
 ├── src/app/unidroid/
 │   ├── launcher/                — The app (home screen)
 │   │   ├── HomeActivity.java    — Home screen: clock, hero, rows, remote tile
+│   │   ├── Backdrop.java        — Backgrounds (still and animated) and palettes
 │   │   ├── Sheet.java           — Side panel: header and focusable rows
-│   │   ├── WifiPanel.java       — Wi-Fi: scan, connect with a password, forget
-│   │   ├── BluetoothPanel.java  — Bluetooth: paired devices, scan, pair, forget
-│   │   ├── ProjectionPanel.java — Keystone, HDMI input (straight to HDMI1)
-│   │   ├── KeystoneEditor.java  — Full-screen keystone editor (root)
-│   │   ├── KeystoneDaemon.java  — Root helper: applies only the latest corners
-│   │   ├── BrowserActivity.java — Full-screen browser: tabs, pointer, mouse clicks and wheel
-│   │   ├── BrowserControl.java  — Its control socket (127.0.0.1:8090)
-│   │   ├── RemotePanel.java     — Phones (forget), QR code, server
-│   │   ├── RemoteLink.java      — Starts the remote server and reads its state
+│   │   ├── SettingsPanel.java   — Settings by category, home look, per-app menu
+│   │   ├── ProjectionPanel.java — Keystone, projection mode, zoom, HDMI
+│   │   ├── PicturePanel.java / SoundPanel.java / AboutPanel.java
+│   │   ├── WifiPanel.java / BluetoothPanel.java
+│   │   ├── KeystoneEditor.java / KeystoneDaemon.java — Keystone editor and root helper
+│   │   ├── BrowserActivity.java / BrowserControl.java — Remote-driven browser
+│   │   ├── RemotePanel.java / RemoteLink.java — Paired phones, QR code, server control
+│   │   ├── PairActivity.java    — Pairing code on the TV
+│   │   ├── AppExport.java       — App list and icons for the remote
 │   │   ├── QrCode.java / QrView.java — QR code encoder and view
-│   │   ├── SettingsPanel.java   — Launcher settings and the per-app menu
-│   │   └── AppRepo, Prefs, Root, Ui
+│   │   └── AppRepo, Prefs, Root, Tv, Ui
 │   └── remote/                  — The remote server (run with app_process)
-│       ├── Server.java          — HTTP + WebSocket server, files from the APK, /info
-│       ├── Devices.java         — Phones that opened the remote
-│       ├── BrowserRelay.java    — Relays phone ⇄ browser ("w:" messages)
-│       ├── Injector.java        — Key and text injection (InputManager)
-│       ├── HeldKey.java         — Press-and-hold with auto-repeat
-│       └── Actions.java         — Whitelisted actions (settings, apps, keystone, launch)
-├── assets/remote/               — The remote page, manifest and icons (icon.svg is the source)
+│       ├── Server.java          — HTTP + WebSocket server, pairing gate, sleep timer
+│       ├── Pairing.java / Devices.java — Paired phones, one row per phone
+│       ├── TvServer.java        — Picture and panel settings (vendor HIDL)
+│       ├── VirtualMouse.java    — System mouse through /dev/uhid
+│       ├── HdmiWatch.java       — Auto HDMI from the CEC log
+│       ├── BrowserRelay.java    — Phone ⇄ browser ("w:" messages)
+│       ├── Injector.java / HeldKey.java — Key and text injection, auto-repeat
+│       ├── Media.java           — Media viewer for the browser
+│       └── Actions.java         — Whitelisted actions
+├── assets/remote/               — The remote page, manifest and icons
 ├── res/                         — Strings (English, French), icons, TV banner
 ├── scripts/make-icons.py        — PNG icons from the icon geometry
 └── build.sh                     — Gradle-free build
@@ -184,13 +193,12 @@ The home screen also opens screens on request:
 
 ## ⚠️ Known limitations
 
-- **Root for the remote and keystone**: key injection and SurfaceFlinger calls need system rights. Without root, the home screen and panels still work.
-- **No authentication on the remote**: anyone on your network who can reach port 8080 controls the device. Keep it on a trusted LAN and **never expose port 8080 to the internet**.
-- **Plain HTTP**: no service worker, so no offline mode and no install prompt in Chrome on Android. *Add to Home Screen* still works on iOS and Android.
-- **Browser engine**: the system WebView. On the HY300 it is version 83 (2020): some recent sites may not work until it is updated.
-- **Keystone latency**: SurfaceFlinger takes 0.2–0.4 s per change on the HY300 (it saves eight properties each time).
-- **Projection mode and zoom** still open the vendor's screen: they go through a private vendor service not mapped yet.
-- **Hidden Android APIs**: `InputManager.injectInputEvent`, Bluetooth connect/disconnect. Android 14's `InputManagerGlobal` is handled.
+- **Root** is needed for the remote, keystone, picture, mouse and HDMI features. Without it, the home screen and Wi-Fi/Bluetooth panels still work.
+- **Plain HTTP on your LAN**: pairing keeps strangers out, but traffic is not encrypted. **Never expose port 8080 to the internet.**
+- **Browser engine**: the system WebView. On the HY300 it is version 83 (2020): some recent sites may not work.
+- **Vendor services**: picture, projection mode and keystone calls are those of Allwinner H713 projectors. Other devices get the home screen and remote, not these panels.
+- **Colour temperature** levels have no names in the vendor app: they are shown as levels 1 to 3.
+- **Hidden Android APIs**: `InputManager.injectInputEvent`, `HwBinder`, Bluetooth connect/disconnect. Android 14's `InputManagerGlobal` is handled.
 - **Tested on**: Magcubic HY300 (Allwinner H713, Android 11, Magisk).
 
 ## 🤝 Contributing
@@ -198,10 +206,10 @@ The home screen also opens screens on request:
 Issues and pull requests are welcome: [open an issue](https://github.com/trk78/unidroid-suite/issues).
 
 Open ideas:
-- projection mode (front, rear, ceiling) and zoom without the vendor screen;
-- keystone and app shortcuts on the phone remote;
-- custom remote buttons configured from the TV;
-- a signed APK in GitHub Releases, so no JDK or SDK is needed.
+- USB drive and media browser;
+- the projector as a Bluetooth speaker;
+- app management (clear cache, force stop);
+- a wallpaper sent from the phone.
 
 ## 📄 License
 
